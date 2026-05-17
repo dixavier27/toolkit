@@ -1,0 +1,29 @@
+{
+  "name": "{{name}}",
+  "version": "0.1.0",
+  "description": "CLI tool gerado com eco",
+  "type": "module",
+  "bin": {
+    "{{name}}": "./dist/bundle.js"
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "package": "eco package",
+    "obfuscate": "eco obfuscate",
+    "release": "eco release",
+    "check": "eco check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@dixavier27/eco": "github:dixavier27/toolkit#v2.4.0",
+    "@types/node": "^25.8.0",
+    "bun-types": "^1.3.14",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}
