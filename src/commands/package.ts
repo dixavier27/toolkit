@@ -1,14 +1,28 @@
 import { mkdirSync } from "node:fs";
 import { $ } from "bun";
-import type { ToolkitConfig } from "../config.ts";
+import type { EcoConfig } from "../config.ts";
+import { log } from "../utils/logger.ts";
 
-export async function runPackage(config: ToolkitConfig, _flags: string[] = []) {
-  mkdirSync(config.outDir, { recursive: true });
+export interface RunOptions {
+  dryRun?: boolean;
+}
 
-  for (const platform of config.platforms) {
-    const outfile = `${config.outDir}/bundle-${platform}.js`;
+export async function runPackage(config: EcoConfig, opts: RunOptions = {}) {
+  const bundlePath = `${config.outDir}/${config.bundleName}`;
 
-    console.log(`📦 Bundling ${platform} → ${outfile}`);
-    await $`bun build ${config.entry} --outfile ${outfile} --target=bun --minify`;
+  log.info(`📦 Bundling → ${bundlePath}`);
+
+  if (opts.dryRun) {
+    log.info(
+      `   [dry-run] bun build ${config.entry} --outfile ${bundlePath} --target=bun --minify`,
+    );
+  } else {
+    mkdirSync(config.outDir, { recursive: true });
+    await $`bun build ${config.entry} --outfile ${bundlePath} --target=bun --minify`;
+  }
+
+  if (config.afterPackage) {
+    log.verbose("⚙️  Executando hook afterPackage");
+    if (!opts.dryRun) await config.afterPackage(config);
   }
 }

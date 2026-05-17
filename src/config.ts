@@ -1,29 +1,79 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { z } from "zod";
 
-export interface ToolkitConfig {
-  entry: string;
-  outDir: string;
-  releaseName: string;
-  obfuscatorConfig: string;
-  platforms: Array<"linux" | "win" | "macos" | "macos-arm64">;
+const PlatformSchema = z.enum(["linux", "win", "macos", "macos-arm64"]);
+export type Platform = z.infer<typeof PlatformSchema>;
+
+const BaseConfigSchema = z.object({
+  entry: z.string().default("src/main.ts"),
+  outDir: z.string().default("dist"),
+  bundleName: z.string().default("bundle.js"),
+  releaseName: z.string().default("app"),
+  obfuscatorConfig: z.string().default("obfuscator.config.cjs"),
+  platforms: z.array(PlatformSchema).default(["linux", "win"]),
+});
+
+type BaseConfig = z.infer<typeof BaseConfigSchema>;
+
+export type EcoHook = (config: EcoConfig) => void | Promise<void>;
+
+export interface EcoConfig extends BaseConfig {
+  afterPackage?: EcoHook;
+  afterObfuscate?: EcoHook;
+  afterRelease?: EcoHook;
 }
 
-const defaults: ToolkitConfig = {
-  entry: "src/main.ts",
-  outDir: "dist",
-  releaseName: "app",
-  obfuscatorConfig: "obfuscator.config.cjs",
-  platforms: ["linux", "win"],
-};
+export const EcoConfigSchema = BaseConfigSchema.extend({
+  afterPackage: z.function().optional() as z.ZodOptional<z.ZodType<EcoHook>>,
+  afterObfuscate: z.function().optional() as z.ZodOptional<z.ZodType<EcoHook>>,
+  afterRelease: z.function().optional() as z.ZodOptional<z.ZodType<EcoHook>>,
+});
 
-export async function loadConfig(): Promise<ToolkitConfig> {
-  const configPath = resolve(process.cwd(), "biglaw.config.js");
+const DEFAULT_CONFIG_NAMES = [
+  "eco.config.ts",
+  "eco.config.js",
+  "eco.config.mjs",
+];
 
-  if (!existsSync(configPath)) {
-    return defaults;
+function findConfigFile(cwd: string, override?: string): string | undefined {
+  if (override) {
+    const path = resolve(cwd, override);
+    return existsSync(path) ? path : undefined;
+  }
+  for (const name of DEFAULT_CONFIG_NAMES) {
+    const path = resolve(cwd, name);
+    if (existsSync(path)) return path;
+  }
+  return undefined;
+}
+
+export async function loadConfig(configPath?: string): Promise<EcoConfig> {
+  const cwd = process.cwd();
+  const resolved = findConfigFile(cwd, configPath);
+
+  if (!resolved) {
+    return EcoConfigSchema.parse({}) as EcoConfig;
   }
 
-  const userConfig = (await import(configPath)).default;
-  return { ...defaults, ...userConfig };
+  const mod = await import(resolved);
+  const userConfig = mod.default ?? mod;
+
+  const parsed = EcoConfigSchema.safeParse(userConfig);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map(
+        (i: z.ZodIssue) => `  - ${i.path.join(".") || "<root>"}: ${i.message}`,
+      )
+      .join("\n");
+    throw new Error(
+      `Configuração inválida em ${resolved}:\n${issues}\n\nConsulte 'eco --help' ou rode 'eco check'.`,
+    );
+  }
+
+  return parsed.data as EcoConfig;
+}
+
+export function getConfigPath(configPath?: string): string | undefined {
+  return findConfigFile(process.cwd(), configPath);
 }
