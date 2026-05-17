@@ -4,12 +4,15 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { meta as checkMeta, runCheck } from "./commands/check.ts";
+import { meta as ciMeta, runCiGenerate } from "./commands/ci.ts";
 import { meta as configMeta, runConfigShow } from "./commands/config-show.ts";
+import { meta as doctorMeta, runDoctor } from "./commands/doctor.ts";
 import { meta as infoMeta, runInfo } from "./commands/info.ts";
 import { meta as initMeta, runInit } from "./commands/init.ts";
 import { meta as obfuscateMeta, runObfuscate } from "./commands/obfuscate.ts";
 import { meta as packageMeta, runPackage } from "./commands/package.ts";
 import { meta as releaseMeta, runRelease } from "./commands/release.ts";
+import { runScriptsInject, meta as scriptsMeta } from "./commands/scripts.ts";
 import { loadConfig } from "./config.ts";
 import { renderCommandHelp } from "./utils/command-meta.ts";
 import { parseArgs } from "./utils/flags.ts";
@@ -31,8 +34,11 @@ function readVersion(): string {
 const COMMAND_META = {
   init: initMeta,
   check: checkMeta,
+  doctor: doctorMeta,
   info: infoMeta,
   config: configMeta,
+  scripts: scriptsMeta,
+  ci: ciMeta,
   package: packageMeta,
   obfuscate: obfuscateMeta,
   release: releaseMeta,
@@ -132,6 +138,49 @@ try {
       config.platforms = flags.platforms as typeof config.platforms;
     }
     await runCheck(config);
+    process.exit(0);
+  }
+
+  if (command === "doctor") {
+    const config = await loadConfig(flags.config);
+    if (flags.platforms) {
+      config.platforms = flags.platforms as typeof config.platforms;
+    }
+    const fix = rest.includes("--fix");
+    await runDoctor(config, { fix });
+    process.exit(0);
+  }
+
+  if (command === "scripts") {
+    const sub = positional[0];
+    if (sub !== "inject") {
+      console.error(`Subcomando inválido: ${sub ?? "(vazio)"}\n`);
+      console.error(renderCommandHelp(scriptsMeta));
+      process.exit(1);
+    }
+    const force = rest.includes("--force");
+    runScriptsInject({ force });
+    process.exit(0);
+  }
+
+  if (command === "ci") {
+    const sub = positional[0];
+    if (sub !== "generate") {
+      console.error(`Subcomando inválido: ${sub ?? "(vazio)"}\n`);
+      console.error(renderCommandHelp(ciMeta));
+      process.exit(1);
+    }
+    const config = await loadConfig(flags.config);
+    if (flags.platforms) {
+      config.platforms = flags.platforms as typeof config.platforms;
+    }
+    const onlyFlag = rest.find((f) => f.startsWith("--only="));
+    const only = onlyFlag?.slice("--only=".length) as
+      | "ci"
+      | "release"
+      | undefined;
+    const update = rest.includes("--update");
+    runCiGenerate(config, { only, update });
     process.exit(0);
   }
 
