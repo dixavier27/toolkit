@@ -14,12 +14,12 @@ import { log, pc } from "../utils/logger.ts";
 export const meta: CommandMeta = {
   name: "new",
   description:
-    "Cria um projeto novo a partir de um template curado (cli-tool, library, backend-fastify)",
+    "Cria um projeto novo a partir de um template curado (cli-tool, library, backend-fastify, frontend-angular-tauri)",
   flags: [
     {
       name: "--template=<tipo>",
       description:
-        "Template a usar: cli-tool | library | backend-fastify (default: cli-tool)",
+        "Template: cli-tool | library | backend-fastify | frontend-angular-tauri (default: cli-tool)",
     },
     { name: "--force", description: "Sobrescreve diretório existente" },
   ],
@@ -27,10 +27,16 @@ export const meta: CommandMeta = {
     "eco new minha-cli",
     "eco new minha-lib --template=library",
     "eco new minha-api --template=backend-fastify",
+    "eco new meu-app --template=frontend-angular-tauri",
   ],
 };
 
-const AVAILABLE_TEMPLATES = ["cli-tool", "library", "backend-fastify"] as const;
+const AVAILABLE_TEMPLATES = [
+  "cli-tool",
+  "library",
+  "backend-fastify",
+  "frontend-angular-tauri",
+] as const;
 type TemplateName = (typeof AVAILABLE_TEMPLATES)[number];
 
 function findTemplatesDir(): string {
@@ -135,6 +141,14 @@ export function runNew(opts: NewOptions) {
     log.info(`  ${pc.dim("4.")} ${pc.cyan("bun run dev")}`);
     log.info(
       `  ${pc.dim("5.")} ${pc.cyan("curl http://localhost:3000/hello/mundo")}`,
+    );
+  } else if (template === "frontend-angular-tauri") {
+    log.info(`  ${pc.dim("3.")} ${pc.cyan("bun run dev")} ${pc.dim("(web)")}`);
+    log.info(
+      `  ${pc.dim("4.")} ${pc.cyan("bun run tauri:dev")} ${pc.dim("(desktop, requer Rust)")}`,
+    );
+    log.info(
+      `  ${pc.dim("5.")} ${pc.cyan("bunx @tauri-apps/cli icon logo.png")} ${pc.dim("(gera ícones antes do build)")}`,
     );
   } else {
     log.info(`  ${pc.dim("3.")} ${pc.cyan("bun test")}`);

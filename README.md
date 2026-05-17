@@ -166,6 +166,7 @@ Templates disponíveis:
 - **`cli-tool`** (default) — CLI Bun com `bin/`, build via `eco package`/`release`
 - **`library`** — Biblioteca TypeScript com `bun test`, types `.d.ts` via `tsc`
 - **`backend-fastify`** — API Fastify + Zod (helmet, cors, error handler, validação de env, exemplo `/hello/:name` com teste via `app.inject()`)
+- **`frontend-angular-tauri`** — App desktop Angular 21 standalone + Tauri 2 + Tailwind + Playwright (component com signal, command Rust de exemplo `greet`, e2e do contador)
 
 Em um projeto **já existente**:
 
@@ -185,5 +186,5 @@ eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
 - ✅ **v2.3** — Platform engineering: `eco scripts inject`, `eco ci generate`, `eco doctor`
 - ✅ **v2.4** — Templates: `eco new <nome> --template=cli-tool|library`
 - ✅ **v2.5** — Template `backend-fastify` (Fastify + Zod + Vitest)
-- ⏳ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
+- ✅ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
 - ⏳ **v2.7** — Ecossistema: Composite GitHub Action, code signing, docs site
