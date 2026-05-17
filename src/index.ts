@@ -3,14 +3,17 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runCheck } from "./commands/check.ts";
-import { runInit } from "./commands/init.ts";
-import { runObfuscate } from "./commands/obfuscate.ts";
-import { runPackage } from "./commands/package.ts";
-import { runRelease } from "./commands/release.ts";
+import { meta as checkMeta, runCheck } from "./commands/check.ts";
+import { meta as configMeta, runConfigShow } from "./commands/config-show.ts";
+import { meta as infoMeta, runInfo } from "./commands/info.ts";
+import { meta as initMeta, runInit } from "./commands/init.ts";
+import { meta as obfuscateMeta, runObfuscate } from "./commands/obfuscate.ts";
+import { meta as packageMeta, runPackage } from "./commands/package.ts";
+import { meta as releaseMeta, runRelease } from "./commands/release.ts";
 import { loadConfig } from "./config.ts";
+import { renderCommandHelp } from "./utils/command-meta.ts";
 import { parseArgs } from "./utils/flags.ts";
-import { setLogLevel } from "./utils/logger.ts";
+import { log, pc, setLogLevel } from "./utils/logger.ts";
 
 export type { EcoConfig, Platform } from "./config.ts";
 
@@ -25,38 +28,52 @@ function readVersion(): string {
   }
 }
 
-const HELP = `eco — toolkit de build, package, obfuscate e release para apps Bun
+const COMMAND_META = {
+  init: initMeta,
+  check: checkMeta,
+  info: infoMeta,
+  config: configMeta,
+  package: packageMeta,
+  obfuscate: obfuscateMeta,
+  release: releaseMeta,
+} as const;
 
-Uso:  eco <comando> [flags]
-
-Comandos:
-  init                Cria eco.config.js no diretório atual
-  check               Valida configuração e ambiente
-  package             Gera o bundle JS único
-  obfuscate           Ofusca o bundle (requer 'package' antes)
-  release             Pipeline completo: package → obfuscate → binários nativos
-
-Flags globais:
-  -h, --help          Mostra esta mensagem
-  -v, --version       Mostra a versão do eco
-      --config <path> Caminho customizado do arquivo de config
-      --platforms <l> Override de plataformas (comma-separated: linux,win,macos,macos-arm64)
-      --verbose       Saída detalhada
-      --quiet         Silencia logs (apenas erros)
-      --dry-run       Mostra o que seria executado sem rodar
-
-Flags específicas:
-  release --skip-obfuscate    Pula a etapa de ofuscação
-
-Exemplos:
-  eco init
-  eco check
-  eco package --platforms=linux
-  eco release --skip-obfuscate --verbose
-  eco release --config=custom.config.js
-`;
+function rootHelp(): string {
+  const lines: string[] = [];
+  lines.push(
+    `${pc.bold("eco")} — toolkit de build, package, obfuscate e release para apps Bun`,
+  );
+  lines.push("");
+  lines.push(`Uso:  ${pc.cyan("eco <comando> [flags]")}`);
+  lines.push("");
+  lines.push(pc.bold("Comandos:"));
+  for (const meta of Object.values(COMMAND_META)) {
+    lines.push(`  ${pc.cyan(meta.name.padEnd(12))} ${meta.description}`);
+  }
+  lines.push("");
+  lines.push(pc.bold("Flags globais:"));
+  lines.push(
+    `  ${"-h, --help".padEnd(22)} Mostra esta mensagem ou ajuda do comando`,
+  );
+  lines.push(`  ${"-v, --version".padEnd(22)} Mostra a versão do eco`);
+  lines.push(`  ${"--config <path>".padEnd(22)} Caminho customizado do config`);
+  lines.push(
+    `  ${"--platforms <list>".padEnd(22)} Override de plataformas (comma-separated)`,
+  );
+  lines.push(`  ${"--verbose".padEnd(22)} Saída detalhada`);
+  lines.push(`  ${"--quiet".padEnd(22)} Silencia logs`);
+  lines.push(
+    `  ${"--dry-run".padEnd(22)} Mostra o que seria executado sem rodar`,
+  );
+  lines.push("");
+  lines.push(pc.dim("Para detalhes de um comando: eco <comando> --help"));
+  return lines.join("\n");
+}
 
 const args = parseArgs(process.argv.slice(2));
+
+if (args.flags.verbose) setLogLevel("verbose");
+if (args.flags.quiet) setLogLevel("silent");
 
 if (args.flags.version) {
   console.log(readVersion());
@@ -64,24 +81,48 @@ if (args.flags.version) {
 }
 
 if (args.flags.help && !args.command) {
-  console.log(HELP);
+  console.log(rootHelp());
   process.exit(0);
 }
 
-if (args.flags.verbose) setLogLevel("verbose");
-if (args.flags.quiet) setLogLevel("silent");
-
-const { command, flags, rest } = args;
+const { command, flags, rest, positional } = args;
 
 if (!command) {
-  console.error(HELP);
+  console.error(rootHelp());
   process.exit(1);
+}
+
+if (flags.help && command in COMMAND_META) {
+  console.log(
+    renderCommandHelp(COMMAND_META[command as keyof typeof COMMAND_META]),
+  );
+  process.exit(0);
 }
 
 try {
   if (command === "init") {
     const force = rest.includes("--force");
     await runInit({ force });
+    process.exit(0);
+  }
+
+  if (command === "info") {
+    await runInfo();
+    process.exit(0);
+  }
+
+  if (command === "config") {
+    const sub = positional[0];
+    if (sub !== "show") {
+      console.error(`Subcomando inválido: ${sub ?? "(vazio)"}\n`);
+      console.error(renderCommandHelp(configMeta));
+      process.exit(1);
+    }
+    const config = await loadConfig(flags.config);
+    if (flags.platforms) {
+      config.platforms = flags.platforms as typeof config.platforms;
+    }
+    runConfigShow(config);
     process.exit(0);
   }
 
@@ -102,7 +143,8 @@ try {
   const opts = { dryRun: flags.dryRun };
 
   if (command === "package") {
-    await runPackage(config, opts);
+    const watch = rest.includes("--watch");
+    await runPackage(config, { ...opts, watch });
   } else if (command === "obfuscate") {
     await runObfuscate(config, opts);
   } else if (command === "release") {
@@ -110,11 +152,11 @@ try {
     await runRelease(config, { ...opts, skipObfuscate });
   } else {
     console.error(`Comando desconhecido: ${command}\n`);
-    console.error(HELP);
+    console.error(rootHelp());
     process.exit(1);
   }
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  console.error(`\n❌ ${message}`);
+  log.error(`\n❌ ${message}`);
   process.exit(1);
 }

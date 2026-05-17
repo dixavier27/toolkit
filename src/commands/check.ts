@@ -2,7 +2,14 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { $ } from "bun";
 import { type EcoConfig, getConfigPath } from "../config.ts";
-import { log } from "../utils/logger.ts";
+import type { CommandMeta } from "../utils/command-meta.ts";
+import { log, pc } from "../utils/logger.ts";
+
+export const meta: CommandMeta = {
+  name: "check",
+  description: "Valida configuração e ambiente para uso do eco",
+  examples: ["eco check"],
+};
 
 type Status = "ok" | "warn" | "fail";
 
@@ -13,9 +20,9 @@ interface CheckResult {
 }
 
 function symbol(s: Status): string {
-  if (s === "ok") return "✅";
-  if (s === "warn") return "⚠️ ";
-  return "❌";
+  if (s === "ok") return pc.green("✅");
+  if (s === "warn") return pc.yellow("⚠️ ");
+  return pc.red("❌");
 }
 
 async function checkBunVersion(): Promise<CheckResult> {
@@ -101,7 +108,8 @@ function checkPlatformsHost(config: EcoConfig): CheckResult {
 }
 
 export async function runCheck(config: EcoConfig) {
-  log.info("🔍 Verificando ambiente eco\n");
+  log.info(pc.bold("🔍 Verificando ambiente eco"));
+  log.info("");
 
   const results: CheckResult[] = [
     checkConfigFile(),
@@ -113,16 +121,17 @@ export async function runCheck(config: EcoConfig) {
   ];
 
   for (const r of results) {
-    const detail = r.detail ? ` — ${r.detail}` : "";
+    const detail = r.detail ? pc.dim(` — ${r.detail}`) : "";
     log.info(`${symbol(r.status)} ${r.label}${detail}`);
   }
 
   const failed = results.filter((r) => r.status === "fail").length;
   const warned = results.filter((r) => r.status === "warn").length;
+  const ok = results.length - failed - warned;
 
   log.info("");
   log.info(
-    `Resumo: ${results.length - failed - warned} ok, ${warned} warning${warned !== 1 ? "s" : ""}, ${failed} falha${failed !== 1 ? "s" : ""}`,
+    `Resumo: ${pc.green(`${ok} ok`)}, ${pc.yellow(`${warned} warning${warned !== 1 ? "s" : ""}`)}, ${pc.red(`${failed} falha${failed !== 1 ? "s" : ""}`)}`,
   );
 
   if (failed > 0) process.exit(1);

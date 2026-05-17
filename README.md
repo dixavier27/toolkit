@@ -13,11 +13,26 @@ bun add -D github:dixavier27/toolkit#v2.0.0
 ## Início rápido
 
 ```bash
-eco init        # cria eco.config.js
+eco init        # cria eco.config.js inferindo do package.json
 eco check       # valida configuração e ambiente
+eco info        # exibe versões instaladas e config detectado
 eco package     # gera o bundle
 eco release     # pipeline completo: package → obfuscate → binários
 ```
+
+## Comandos
+
+| Comando | Descrição |
+|---------|-----------|
+| `eco init` | Cria `eco.config.js` com defaults inferidos do `package.json` |
+| `eco check` | Valida config e ambiente (entry, obfuscator, Bun, cross-compile) |
+| `eco info` | Mostra versão do eco, Bun, javascript-obfuscator e config path |
+| `eco config show` | Imprime o config resolvido (com defaults) em JSON |
+| `eco package` | Gera o bundle JS único |
+| `eco obfuscate` | Ofusca o bundle (requer `package` antes) |
+| `eco release` | Pipeline completo: package → obfuscate → binários nativos |
+
+Para detalhes de cada comando: `eco <comando> --help`.
 
 ## Configuração
 
@@ -35,11 +50,9 @@ export default {
 }
 ```
 
-Todos os campos têm defaults sensatos — você pode começar com `export default {}` e ajustar conforme necessário.
+Todos os campos têm defaults — comece com `export default {}` se quiser.
 
 ### Hooks de pipeline
-
-Use hooks para customizar cada etapa do pipeline:
 
 ```js
 import { cp } from 'node:fs/promises'
@@ -55,29 +68,27 @@ export default {
 }
 ```
 
-Hooks disponíveis: `afterPackage`, `afterObfuscate`, `afterRelease`.
-
-## Comandos
-
-| Comando | Descrição |
-|---------|-----------|
-| `eco init` | Cria `eco.config.js` com defaults inferidos do `package.json` |
-| `eco check` | Valida config e ambiente (entry existe, Bun no PATH, etc.) |
-| `eco package` | Gera o bundle JS único |
-| `eco obfuscate` | Ofusca o bundle (requer `package` antes) |
-| `eco release` | Pipeline completo: package → obfuscate → binários nativos |
+Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 
 ## Flags globais
 
 | Flag | Descrição |
 |------|-----------|
-| `-h, --help` | Mostra ajuda |
-| `-v, --version` | Mostra versão |
+| `-h, --help` | Ajuda raiz ou específica de um comando |
+| `-v, --version` | Mostra versão do eco |
 | `--config <path>` | Caminho customizado do config |
 | `--platforms <list>` | Override de plataformas (`linux,win,macos,macos-arm64`) |
 | `--verbose` | Saída detalhada |
-| `--quiet` | Silencia logs |
+| `--quiet` | Silencia logs (apenas erros) |
 | `--dry-run` | Mostra o que faria sem executar |
+
+## Flags específicas
+
+| Comando | Flag | Descrição |
+|---------|------|-----------|
+| `package` | `--watch` | Rebundla em mudanças (delega para `bun build --watch`) |
+| `release` | `--skip-obfuscate` | Pula a etapa de ofuscação |
+| `init` | `--force` | Sobrescreve `eco.config.js` existente |
 
 ## Plataformas suportadas
 
@@ -86,7 +97,7 @@ Hooks disponíveis: `afterPackage`, `afterObfuscate`, `afterRelease`.
 - `macos` (x64)
 - `macos-arm64` (Apple Silicon)
 
-> ⚠️ Cross-compile de `macos-*` em runners Linux/Windows pode falhar. Use `macos-latest` no CI ou rode `eco check` para verificar.
+> ⚠️ Cross-compile de `macos-*` em runners não-Darwin pode falhar. Use `macos-latest` no CI ou rode `eco check` para validar.
 
 ## Integração no `package.json` do seu projeto
 
@@ -102,3 +113,10 @@ Hooks disponíveis: `afterPackage`, `afterObfuscate`, `afterRelease`.
 ## Requisitos
 
 - [Bun](https://bun.sh) >= 1.2.0
+
+## Roadmap
+
+- ✅ **v2.0** — Fundação: rename, Zod, hooks, comandos novos, flags globais, DX polish
+- ⏳ **v2.2** — Build features: sourcemaps, assets declarativos, presets de obfuscation, paralelização, checksums
+- ⏳ **v2.3** — Platform engineering: `eco new <template>`, `eco ci generate`, `eco scripts inject`, `eco doctor`
+- ⏳ **v2.4** — Ecossistema: Composite GitHub Action, code signing, docs site
