@@ -14,22 +14,23 @@ import { log, pc } from "../utils/logger.ts";
 export const meta: CommandMeta = {
   name: "new",
   description:
-    "Cria um projeto novo a partir de um template curado (cli-tool, library)",
+    "Cria um projeto novo a partir de um template curado (cli-tool, library, backend-fastify)",
   flags: [
     {
       name: "--template=<tipo>",
-      description: "Template a usar: cli-tool | library (default: cli-tool)",
+      description:
+        "Template a usar: cli-tool | library | backend-fastify (default: cli-tool)",
     },
     { name: "--force", description: "Sobrescreve diretório existente" },
   ],
   examples: [
     "eco new minha-cli",
     "eco new minha-lib --template=library",
-    "eco new existing --force",
+    "eco new minha-api --template=backend-fastify",
   ],
 };
 
-const AVAILABLE_TEMPLATES = ["cli-tool", "library"] as const;
+const AVAILABLE_TEMPLATES = ["cli-tool", "library", "backend-fastify"] as const;
 type TemplateName = (typeof AVAILABLE_TEMPLATES)[number];
 
 function findTemplatesDir(): string {
@@ -128,6 +129,12 @@ export function runNew(opts: NewOptions) {
     log.info(`  ${pc.dim("3.")} ${pc.cyan("bun run dev hello")}`);
     log.info(
       `  ${pc.dim("4.")} ${pc.cyan("bunx eco ci generate")} ${pc.dim("(opcional, para CI/CD)")}`,
+    );
+  } else if (template === "backend-fastify") {
+    log.info(`  ${pc.dim("3.")} ${pc.cyan("cp .env.example .env")}`);
+    log.info(`  ${pc.dim("4.")} ${pc.cyan("bun run dev")}`);
+    log.info(
+      `  ${pc.dim("5.")} ${pc.cyan("curl http://localhost:3000/hello/mundo")}`,
     );
   } else {
     log.info(`  ${pc.dim("3.")} ${pc.cyan("bun test")}`);
