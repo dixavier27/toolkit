@@ -52,6 +52,36 @@ export default {
 
 Todos os campos têm defaults — comece com `export default {}` se quiser.
 
+### Build features
+
+```js
+export default {
+  entry: 'src/main.ts',
+  // sourcemaps:
+  sourcemap: 'external',  // false | 'inline' | 'external'
+
+  // cópia declarativa de arquivos:
+  assets: [
+    { from: 'node_modules/@fastify/swagger-ui/static', to: 'dist/static' },
+    { from: 'public', to: 'dist/public' },
+  ],
+
+  // env-var injection no bundle (usado como bun build --define):
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
+
+  // versão do package.json é injetada automaticamente como __VERSION__:
+  embedVersion: true,
+
+  // paralelização das compilações no release (default true):
+  parallel: true,
+
+  // SHA256 checksums em release/checksums.txt:
+  checksums: true,
+}
+```
+
 ### Hooks de pipeline
 
 ```js
@@ -88,6 +118,8 @@ Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 |---------|------|-----------|
 | `package` | `--watch` | Rebundla em mudanças (delega para `bun build --watch`) |
 | `release` | `--skip-obfuscate` | Pula a etapa de ofuscação |
+| `release` | `--keep-going` | Continua mesmo se uma plataforma falhar |
+| `release` | `--no-parallel` | Compila em sequência (em vez de paralelo) |
 | `init` | `--force` | Sobrescreve `eco.config.js` existente |
 
 ## Plataformas suportadas
@@ -117,6 +149,6 @@ Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 ## Roadmap
 
 - ✅ **v2.0** — Fundação: rename, Zod, hooks, comandos novos, flags globais, DX polish
-- ⏳ **v2.2** — Build features: sourcemaps, assets declarativos, presets de obfuscation, paralelização, checksums
+- ✅ **v2.2** — Build features: sourcemaps, assets declarativos, define, embed de versão, paralelização, checksums, continue-on-error
 - ⏳ **v2.3** — Platform engineering: `eco new <template>`, `eco ci generate`, `eco scripts inject`, `eco doctor`
 - ⏳ **v2.4** — Ecossistema: Composite GitHub Action, code signing, docs site
