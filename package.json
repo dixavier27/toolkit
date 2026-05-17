@@ -1,18 +1,34 @@
 {
-  "name": "toolkit",
-  "version": "1.0.0",
-  "description": "CLI toolkit para build, package, obfuscate e release de apps Biglaw",
+  "name": "@dixavier27/eco",
+  "version": "2.0.0",
+  "description": "eco — toolkit de build, package, obfuscate e release para apps Bun",
   "type": "module",
   "bin": {
-    "biglaw-scripts": "./dist/index.js"
+    "eco": "./dist/index.js"
   },
+  "files": ["dist", "src", "README.md", "LICENSE"],
   "scripts": {
-    "build": "bun build src/index.ts --outfile dist/index.js --target=bun --minify",
-    "dev":   "bun --watch src/index.ts",
-    "prepublishOnly": "bun run build"
+    "build":           "bun build src/index.ts --outfile dist/index.js --target=bun --minify",
+    "dev":             "bun --watch src/index.ts",
+    "typecheck":       "tsc --noEmit",
+    "lint":            "biome check src/",
+    "lint:fix":        "biome check --write src/",
+    "clean":           "rm -rf dist release",
+    "changeset":       "changeset",
+    "version":         "changeset version",
+    "release:publish": "bun run build && changeset publish",
+    "prepublishOnly":  "bun run typecheck && bun run lint && bun run build"
+  },
+  "dependencies": {
+    "javascript-obfuscator": "^5.4.2",
+    "zod":                   "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@biomejs/biome":    "^2.4.15",
+    "@changesets/cli":   "^2.31.0",
+    "@types/node":       "^25.8.0",
+    "bun-types":         "^1.3.14",
+    "typescript":        "^5.9.3"
   },
   "engines": {
     "bun": ">=1.2.0"
