@@ -1,3 +1,5 @@
+import pc from "picocolors";
+
 export type LogLevel = "silent" | "normal" | "verbose";
 
 let level: LogLevel = "normal";
@@ -15,12 +17,23 @@ export const log = {
     if (level !== "silent") console.log(...args);
   },
   verbose(...args: unknown[]) {
-    if (level === "verbose") console.log(...args);
+    if (level === "verbose") console.log(pc.dim(args.join(" ")));
   },
   warn(...args: unknown[]) {
-    if (level !== "silent") console.warn(...args);
+    if (level !== "silent") console.warn(pc.yellow(args.join(" ")));
   },
   error(...args: unknown[]) {
-    console.error(...args);
+    console.error(pc.red(args.join(" ")));
+  },
+  success(...args: unknown[]) {
+    if (level !== "silent") console.log(pc.green(args.join(" ")));
+  },
+  step(...args: unknown[]) {
+    if (level !== "silent") console.log(pc.cyan(args.join(" ")));
+  },
+  dim(...args: unknown[]) {
+    if (level !== "silent") console.log(pc.dim(args.join(" ")));
   },
 };
+
+export { pc };
