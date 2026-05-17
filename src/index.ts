@@ -9,6 +9,7 @@ import { meta as configMeta, runConfigShow } from "./commands/config-show.ts";
 import { meta as doctorMeta, runDoctor } from "./commands/doctor.ts";
 import { meta as infoMeta, runInfo } from "./commands/info.ts";
 import { meta as initMeta, runInit } from "./commands/init.ts";
+import { meta as newMeta, runNew } from "./commands/new.ts";
 import { meta as obfuscateMeta, runObfuscate } from "./commands/obfuscate.ts";
 import { meta as packageMeta, runPackage } from "./commands/package.ts";
 import { meta as releaseMeta, runRelease } from "./commands/release.ts";
@@ -32,6 +33,7 @@ function readVersion(): string {
 }
 
 const COMMAND_META = {
+  new: newMeta,
   init: initMeta,
   check: checkMeta,
   doctor: doctorMeta,
@@ -106,6 +108,23 @@ if (flags.help && command in COMMAND_META) {
 }
 
 try {
+  if (command === "new") {
+    const projectName = positional[0];
+    if (!projectName) {
+      console.error("Uso: eco new <nome-do-projeto> [--template=<tipo>]\n");
+      console.error(renderCommandHelp(newMeta));
+      process.exit(1);
+    }
+    const templateFlag = rest.find((f) => f.startsWith("--template="));
+    const template = templateFlag?.slice("--template=".length) as
+      | "cli-tool"
+      | "library"
+      | undefined;
+    const force = rest.includes("--force");
+    runNew({ projectName, template, force });
+    process.exit(0);
+  }
+
   if (command === "init") {
     const force = rest.includes("--force");
     await runInit({ force });

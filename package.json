@@ -6,7 +6,7 @@
   "bin": {
     "eco": "./dist/index.js"
   },
-  "files": ["dist", "src", "README.md", "LICENSE"],
+  "files": ["dist", "src", "templates", "README.md", "LICENSE"],
   "scripts": {
     "build": "bun build src/index.ts --outfile dist/index.js --target=bun --minify",
     "dev": "bun --watch src/index.ts",
