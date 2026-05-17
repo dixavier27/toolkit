@@ -1,0 +1,20 @@
+{
+  "name": "toolkit",
+  "version": "1.0.0",
+  "description": "CLI toolkit para build, package, obfuscate e release de apps Biglaw",
+  "type": "module",
+  "bin": {
+    "biglaw-scripts": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outfile dist/index.js --target=bun --minify",
+    "dev":   "bun --watch src/index.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}
