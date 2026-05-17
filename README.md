@@ -26,8 +26,11 @@ eco release     # pipeline completo: package → obfuscate → binários
 |---------|-----------|
 | `eco init` | Cria `eco.config.js` com defaults inferidos do `package.json` |
 | `eco check` | Valida config e ambiente (entry, obfuscator, Bun, cross-compile) |
+| `eco doctor` | Diagnóstico extendido com `--fix` para autocorrigir problemas |
 | `eco info` | Mostra versão do eco, Bun, javascript-obfuscator e config path |
 | `eco config show` | Imprime o config resolvido (com defaults) em JSON |
+| `eco scripts inject` | Adiciona scripts do eco no `package.json` |
+| `eco ci generate` | Gera `.github/workflows/ci.yml` e `release.yml` |
 | `eco package` | Gera o bundle JS único |
 | `eco obfuscate` | Ofusca o bundle (requer `package` antes) |
 | `eco release` | Pipeline completo: package → obfuscate → binários nativos |
@@ -146,9 +149,21 @@ Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 
 - [Bun](https://bun.sh) >= 1.2.0
 
+## Setup de um projeto novo em 30 segundos
+
+```bash
+cd meu-projeto
+bun add -D github:dixavier27/toolkit#v2.3.0
+eco init                 # cria eco.config.js
+eco scripts inject       # adiciona scripts no package.json
+eco ci generate          # gera workflows ci.yml + release.yml
+eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
+```
+
 ## Roadmap
 
 - ✅ **v2.0** — Fundação: rename, Zod, hooks, comandos novos, flags globais, DX polish
-- ✅ **v2.2** — Build features: sourcemaps, assets declarativos, define, embed de versão, paralelização, checksums, continue-on-error
-- ⏳ **v2.3** — Platform engineering: `eco new <template>`, `eco ci generate`, `eco scripts inject`, `eco doctor`
-- ⏳ **v2.4** — Ecossistema: Composite GitHub Action, code signing, docs site
+- ✅ **v2.2** — Build features: sourcemaps, assets declarativos, define, embed de versão, paralelização, checksums
+- ✅ **v2.3** — Platform engineering: `eco scripts inject`, `eco ci generate`, `eco doctor`
+- ⏳ **v2.4** — Templates: `eco new <template>` (backend-fastify, frontend-angular-tauri, cli-tool, library)
+- ⏳ **v2.5** — Ecossistema: Composite GitHub Action, code signing, docs site
