@@ -149,7 +149,9 @@ try {
     await runObfuscate(config, opts);
   } else if (command === "release") {
     const skipObfuscate = rest.includes("--skip-obfuscate");
-    await runRelease(config, { ...opts, skipObfuscate });
+    const keepGoing = rest.includes("--keep-going");
+    const parallel = !rest.includes("--no-parallel");
+    await runRelease(config, { ...opts, skipObfuscate, keepGoing, parallel });
   } else {
     console.error(`Comando desconhecido: ${command}\n`);
     console.error(rootHelp());

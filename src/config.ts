@@ -5,6 +5,16 @@ import { z } from "zod";
 const PlatformSchema = z.enum(["linux", "win", "macos", "macos-arm64"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
+const SourcemapSchema = z
+  .union([z.literal(false), z.literal("inline"), z.literal("external")])
+  .default(false);
+
+const AssetSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+});
+export type Asset = z.infer<typeof AssetSchema>;
+
 const BaseConfigSchema = z.object({
   entry: z.string().default("src/main.ts"),
   outDir: z.string().default("dist"),
@@ -12,6 +22,12 @@ const BaseConfigSchema = z.object({
   releaseName: z.string().default("app"),
   obfuscatorConfig: z.string().default("obfuscator.config.cjs"),
   platforms: z.array(PlatformSchema).default(["linux", "win"]),
+  sourcemap: SourcemapSchema,
+  assets: z.array(AssetSchema).default([]),
+  define: z.record(z.string()).default({}),
+  embedVersion: z.boolean().default(true),
+  parallel: z.boolean().default(true),
+  checksums: z.boolean().default(false),
 });
 
 type BaseConfig = z.infer<typeof BaseConfigSchema>;
