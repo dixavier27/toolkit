@@ -1,12 +1,13 @@
 import { $ } from 'bun'
 import { mkdirSync } from 'fs'
 import type { ToolkitConfig } from '../config.ts'
+import { runPackage } from './package.ts'
 import { runObfuscate } from './obfuscate.ts'
 
 const bunTargets: Record<string, string> = {
-  linux:       'bun-linux-x64',
-  win:         'bun-windows-x64',
-  macos:       'bun-darwin-x64',
+  linux:         'bun-linux-x64',
+  win:           'bun-windows-x64',
+  macos:         'bun-darwin-x64',
   'macos-arm64': 'bun-darwin-arm64',
 }
 
@@ -14,8 +15,11 @@ const ext: Record<string, string> = {
   win: '.exe',
 }
 
-export async function runRelease(config: ToolkitConfig) {
-  await runObfuscate(config)
+export async function runRelease(config: ToolkitConfig, flags: string[] = []) {
+  const skipObfuscate = flags.includes('--skip-obfuscate')
+
+  await runPackage(config)
+  if (!skipObfuscate) await runObfuscate(config)
 
   mkdirSync('release', { recursive: true })
 
