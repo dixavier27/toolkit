@@ -5,7 +5,7 @@ export default defineConfig({
   description: "🌱 Toolkit de build, package, obfuscate e release para apps Bun",
   lang: "pt-BR",
   cleanUrls: true,
-  base: "/toolkit/",
+  base: "/eco/",
   lastUpdated: true,
 
   head: [
@@ -34,7 +34,7 @@ export default defineConfig({
           { text: "Migração v1→v2", link: "/guide/migration-v1-to-v2" },
           {
             text: "GitHub",
-            link: "https://github.com/dixavier27/toolkit",
+            link: "https://github.com/dixavier27/eco",
           },
         ],
       },
@@ -83,12 +83,12 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/dixavier27/toolkit" },
+      { icon: "github", link: "https://github.com/dixavier27/eco" },
     ],
 
     footer: {
       message:
-        "Released under the <a href='https://github.com/dixavier27/toolkit/blob/master/LICENSE'>MIT License</a>",
+        "Released under the <a href='https://github.com/dixavier27/eco/blob/main/LICENSE'>MIT License</a>",
       copyright: "Copyright © 2026 Affonso Xavier",
     },
 
@@ -98,7 +98,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/dixavier27/toolkit/edit/master/docs/:path",
+        "https://github.com/dixavier27/eco/edit/main/docs/:path",
       text: "Editar esta página no GitHub",
     },
 

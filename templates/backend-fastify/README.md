@@ -1,6 +1,6 @@
 # {{name}}
 
-API Fastify scaffolded com [eco](https://github.com/dixavier27/toolkit).
+API Fastify scaffolded com [eco](https://github.com/dixavier27/eco).
 
 ## Desenvolvimento
 

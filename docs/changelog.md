@@ -1,6 +1,6 @@
 # Changelog
 
-Histórico de releases do eco (`@dixavier27/eco`). Para o changelog completo gerado pelo changeset, veja [CHANGELOG.md no repo](https://github.com/dixavier27/toolkit/blob/master/CHANGELOG.md).
+Histórico de releases do eco (`@dixavier27/eco`). Para o changelog completo gerado pelo changeset, veja [CHANGELOG.md no repo](https://github.com/dixavier27/eco/blob/main/CHANGELOG.md).
 
 ## v2.8 — Docs site
 
@@ -11,7 +11,7 @@ Histórico de releases do eco (`@dixavier27/eco`). Para o changelog completo ger
 
 ## v2.7 — Ecossistema
 
-- 🤝 **Composite GitHub Action** `dixavier27/toolkit/composite-action@v2.7.0` — substitui 30 linhas de YAML por 3
+- 🤝 **Composite GitHub Action** `dixavier27/eco/composite-action@v2.7.0` — substitui 30 linhas de YAML por 3
 - 🐚 `eco completion <bash|zsh|fish>` — autocomplete no shell
 - Dogfooding: `eco ci generate` agora usa o Composite Action nos workflows gerados
 

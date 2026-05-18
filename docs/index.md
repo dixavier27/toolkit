@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: Ver no GitHub
-      link: https://github.com/dixavier27/toolkit
+      link: https://github.com/dixavier27/eco
 
 features:
   - icon: 🌱
@@ -49,7 +49,7 @@ bun run dev
 ```
 
 ```bash [Projeto existente]
-bun add -D github:dixavier27/toolkit#v2.8.0
+bun add -D github:dixavier27/eco#v2.8.0
 eco init           # cria eco.config.js
 eco scripts inject # adiciona scripts no package.json
 eco ci generate    # gera workflows GitHub Actions
@@ -77,6 +77,6 @@ Ver todos em [comandos](/commands).
 | Sem eco | Com eco |
 |---------|---------|
 | Cada projeto reescreve build scripts no package.json | `eco scripts inject` |
-| Cada repositório copia-cola CI/CD YAML de outro | `eco ci generate` ou `dixavier27/toolkit/composite-action@v2.8.0` |
+| Cada repositório copia-cola CI/CD YAML de outro | `eco ci generate` ou `dixavier27/eco/composite-action@v2.8.0` |
 | Tooling inconsistente entre projetos | Templates curados garantem padronização |
 | Build de produção espalhado em flags de bun build | `eco.config.js` declarativo |

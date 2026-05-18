@@ -31,7 +31,7 @@ Templates disponíveis:
 ## Setup em projeto existente
 
 ```bash
-bun add -D github:dixavier27/toolkit#v2.8.0
+bun add -D github:dixavier27/eco#v2.8.0
 eco init           # cria eco.config.js
 eco scripts inject # adiciona "package", "obfuscate", "release", "check"
 eco ci generate    # gera .github/workflows/ci.yml e release.yml

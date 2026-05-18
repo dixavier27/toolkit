@@ -5,15 +5,15 @@
 ::: code-group
 
 ```bash [Bun]
-bun add -D github:dixavier27/toolkit#v2.8.0
+bun add -D github:dixavier27/eco#v2.8.0
 ```
 
 ```bash [pnpm]
-pnpm add -D github:dixavier27/toolkit#v2.8.0
+pnpm add -D github:dixavier27/eco#v2.8.0
 ```
 
 ```bash [npm]
-npm install -D github:dixavier27/toolkit#v2.8.0
+npm install -D github:dixavier27/eco#v2.8.0
 ```
 
 :::
@@ -23,7 +23,7 @@ O pacote é publicado como `@dixavier27/eco` (o repositório se chama `toolkit` 
 ## Global (para usar `eco` direto no terminal)
 
 ```bash
-bun add -g github:dixavier27/toolkit#v2.8.0
+bun add -g github:dixavier27/eco#v2.8.0
 ```
 
 Depois, em qualquer projeto:

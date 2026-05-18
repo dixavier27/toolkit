@@ -90,7 +90,7 @@ jobs:
 ${matrix}
     steps:
       - uses: actions/checkout@v4
-      - uses: dixavier27/toolkit/composite-action@v2.7.0
+      - uses: dixavier27/eco/composite-action@v2.7.0
         with:
           command: release --keep-going
           platforms: \${{ matrix.platform }}

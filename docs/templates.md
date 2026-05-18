@@ -192,4 +192,4 @@ O eco resolve templates por nome em `templates/<nome>/`. Para adicionar um templ
 3. Adicione `meu-template` à whitelist em `src/commands/new.ts`
 4. Documente aqui
 
-PRs welcome — veja [contribuindo](https://github.com/dixavier27/toolkit/issues).
+PRs welcome — veja [contribuindo](https://github.com/dixavier27/eco/issues).

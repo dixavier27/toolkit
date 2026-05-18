@@ -1,6 +1,6 @@
 # {{name}}
 
-TypeScript library scaffolded com [eco](https://github.com/dixavier27/toolkit).
+TypeScript library scaffolded com [eco](https://github.com/dixavier27/eco).
 
 ## Desenvolvimento
 

@@ -5,7 +5,7 @@ Action reusable do eco para usar em workflows GitHub Actions sem reescrever 30 l
 ## Localização
 
 ```yaml
-uses: dixavier27/toolkit/composite-action@v2.8.0
+uses: dixavier27/eco/composite-action@v2.8.0
 ```
 
 ## Inputs
@@ -42,7 +42,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dixavier27/toolkit/composite-action@v2.8.0
+      - uses: dixavier27/eco/composite-action@v2.8.0
         with:
           command: release
           platforms: linux,win
@@ -71,7 +71,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dixavier27/toolkit/composite-action@v2.8.0
+      - uses: dixavier27/eco/composite-action@v2.8.0
         with:
           command: release --keep-going
           platforms: ${{ matrix.platform }}
@@ -86,7 +86,7 @@ jobs:
 ## Exemplo: monorepo
 
 ```yaml
-- uses: dixavier27/toolkit/composite-action@v2.8.0
+- uses: dixavier27/eco/composite-action@v2.8.0
   with:
     command: release
     working-directory: apps/backend
@@ -115,7 +115,7 @@ A action é equivalente a:
 Use sempre tag exata (`@v2.8.0`) ou major fluida (`@v2`) para receber patches automaticamente:
 
 ```yaml
-uses: dixavier27/toolkit/composite-action@v2.8.0  # tag exata (preferido em prod)
-uses: dixavier27/toolkit/composite-action@v2      # major fluida (semver patch+minor)
-uses: dixavier27/toolkit/composite-action@master  # ❌ NÃO recomendado
+uses: dixavier27/eco/composite-action@v2.8.0  # tag exata (preferido em prod)
+uses: dixavier27/eco/composite-action@v2      # major fluida (semver patch+minor)
+uses: dixavier27/eco/composite-action@main    # ❌ NÃO recomendado
 ```

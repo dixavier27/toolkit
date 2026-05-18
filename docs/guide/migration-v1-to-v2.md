@@ -17,8 +17,8 @@ A v2 trouxe um rebranding completo. Se você tem um projeto usando a v1.x (`tool
 ### 1. `package.json`
 
 ```diff
-- "toolkit": "github:dixavier27/toolkit#v1.0.1"
-+ "@dixavier27/eco": "github:dixavier27/toolkit#v2.8.0"
+- "toolkit": "github:dixavier27/eco#v1.0.1"
++ "@dixavier27/eco": "github:dixavier27/eco#v2.8.0"
 ```
 
 E os scripts:
@@ -96,7 +96,7 @@ Substitua YAML manual pelo Composite Action:
 -     with: { bun-version: '1.2.0' }
 -   - run: bun install --frozen-lockfile
 -   - run: bunx biglaw-scripts release
-+   - uses: dixavier27/toolkit/composite-action@v2.8.0
++   - uses: dixavier27/eco/composite-action@v2.8.0
 +     with:
 +       command: release
 +       platforms: linux,win
