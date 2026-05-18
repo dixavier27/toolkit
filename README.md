@@ -2,6 +2,8 @@
 
 🌱 Toolkit de build, package, obfuscate e release para apps Bun — um ecossistema de ferramentas para empacotar e distribuir aplicações em múltiplas plataformas.
 
+📚 **Documentação completa:** [dixavier27.github.io/toolkit](https://dixavier27.github.io/toolkit/)
+
 ## Instalação
 
 ```bash
@@ -218,5 +220,5 @@ eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
 - ✅ **v2.5** — Template `backend-fastify` (Fastify + Zod + Vitest)
 - ✅ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
 - ✅ **v2.7** — Ecossistema: Composite GitHub Action + autocompletion (bash/zsh/fish)
-- ⏳ **v2.8** — Code signing (Windows signtool, macOS codesign + notarization)
-- ⏳ **v2.9** — Docs site (Astro/VitePress) + guias de migração
+- ✅ **v2.8** — Docs site VitePress + guias de migração ([dixavier27.github.io/toolkit](https://dixavier27.github.io/toolkit/))
+- ⏳ **Deferred** — Code signing (Windows signtool, macOS codesign + notarization) — implementaremos quando houver consumidor exigindo
