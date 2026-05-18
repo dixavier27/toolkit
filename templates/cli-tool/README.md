@@ -1,6 +1,6 @@
 # {{name}}
 
-CLI tool criado com [eco](https://github.com/dixavier27/toolkit).
+CLI tool criado com [eco](https://github.com/dixavier27/eco).
 
 ## Desenvolvimento
 

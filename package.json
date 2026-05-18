@@ -17,7 +17,10 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release:publish": "bun run build && changeset publish",
-    "prepublishOnly": "bun run typecheck && bun run lint && bun run build"
+    "prepublishOnly": "bun run typecheck && bun run lint && bun run build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "javascript-obfuscator": "^5.4.2",
@@ -29,7 +32,8 @@
     "@changesets/cli": "^2.31.0",
     "@types/node": "^25.8.0",
     "bun-types": "^1.3.14",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4"
   },
   "engines": {
     "bun": ">=1.2.0"

@@ -1,6 +1,6 @@
 # {{name}}
 
-App desktop Angular 21 + Tauri 2 + Tailwind, scaffolded com [eco](https://github.com/dixavier27/toolkit).
+App desktop Angular 21 + Tauri 2 + Tailwind, scaffolded com [eco](https://github.com/dixavier27/eco).
 
 ## Pré-requisitos
 

@@ -2,10 +2,12 @@
 
 🌱 Toolkit de build, package, obfuscate e release para apps Bun — um ecossistema de ferramentas para empacotar e distribuir aplicações em múltiplas plataformas.
 
+📚 **Documentação completa:** [dixavier27.github.io/eco](https://dixavier27.github.io/eco/)
+
 ## Instalação
 
 ```bash
-bun add -D github:dixavier27/toolkit#v2.0.0
+bun add -D github:dixavier27/eco#v2.0.0
 ```
 
 > O pacote é publicado como `@dixavier27/eco` (o repositório continua sendo `toolkit`).
@@ -167,7 +169,7 @@ eco completion fish > ~/.config/fish/completions/eco.fish
 Para usar o eco em workflows de outros projetos, sem reescrever 30 linhas de YAML:
 
 ```yaml
-- uses: dixavier27/toolkit/composite-action@v2.7.0
+- uses: dixavier27/eco/composite-action@v2.7.0
   with:
     command: release
     platforms: linux,win
@@ -202,7 +204,7 @@ Em um projeto **já existente**:
 
 ```bash
 cd meu-projeto-existente
-bun add -D github:dixavier27/toolkit#v2.4.0
+bun add -D github:dixavier27/eco#v2.4.0
 eco init                 # cria eco.config.js
 eco scripts inject       # adiciona scripts no package.json
 eco ci generate          # gera workflows ci.yml + release.yml
@@ -218,5 +220,5 @@ eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
 - ✅ **v2.5** — Template `backend-fastify` (Fastify + Zod + Vitest)
 - ✅ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
 - ✅ **v2.7** — Ecossistema: Composite GitHub Action + autocompletion (bash/zsh/fish)
-- ⏳ **v2.8** — Code signing (Windows signtool, macOS codesign + notarization)
-- ⏳ **v2.9** — Docs site (Astro/VitePress) + guias de migração
+- ✅ **v2.8** — Docs site VitePress + guias de migração ([dixavier27.github.io/eco](https://dixavier27.github.io/eco/))
+- ⏳ **Deferred** — Code signing (Windows signtool, macOS codesign + notarization) — implementaremos quando houver consumidor exigindo

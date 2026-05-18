@@ -5,7 +5,7 @@ Composite action que roda comandos do [eco](../README.md) em workflows GitHub Ac
 ## Uso
 
 ```yaml
-- uses: dixavier27/toolkit/composite-action@v2.7.0
+- uses: dixavier27/eco/composite-action@v2.7.0
   with:
     command: release
     platforms: linux,win
@@ -48,7 +48,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dixavier27/toolkit/composite-action@v2.7.0
+      - uses: dixavier27/eco/composite-action@v2.7.0
         with:
           command: release
           platforms: linux,win
@@ -71,7 +71,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dixavier27/toolkit/composite-action@v2.7.0
+      - uses: dixavier27/eco/composite-action@v2.7.0
         with:
           command: release --keep-going
           platforms: ${{ matrix.platform }}
