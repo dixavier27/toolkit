@@ -90,11 +90,10 @@ jobs:
 ${matrix}
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: dixavier27/toolkit/composite-action@v2.7.0
         with:
-          bun-version: '1.2.0'
-      - run: bun install --frozen-lockfile
-      - run: bunx eco release --platforms=\${{ matrix.platform }} --keep-going
+          command: release --keep-going
+          platforms: \${{ matrix.platform }}
       - uses: softprops/action-gh-release@v2
         with:
           files: |

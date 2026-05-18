@@ -35,6 +35,7 @@ eco release     # pipeline completo: package → obfuscate → binários
 | `eco package` | Gera o bundle JS único |
 | `eco obfuscate` | Ofusca o bundle (requer `package` antes) |
 | `eco release` | Pipeline completo: package → obfuscate → binários nativos |
+| `eco completion <shell>` | Emite script de autocomplete para `bash`, `zsh` ou `fish` |
 
 Para detalhes de cada comando: `eco <comando> --help`.
 
@@ -146,6 +147,35 @@ Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 }
 ```
 
+## Autocomplete no shell
+
+```bash
+# Bash
+eco completion bash > ~/.eco-completion.bash
+echo 'source ~/.eco-completion.bash' >> ~/.bashrc
+
+# Zsh
+eco completion zsh > ~/.zsh/completions/_eco
+# Garanta que ~/.zsh/completions/ está em $fpath
+
+# Fish
+eco completion fish > ~/.config/fish/completions/eco.fish
+```
+
+## GitHub Action (Composite)
+
+Para usar o eco em workflows de outros projetos, sem reescrever 30 linhas de YAML:
+
+```yaml
+- uses: dixavier27/toolkit/composite-action@v2.7.0
+  with:
+    command: release
+    platforms: linux,win
+    upload-artifacts: true
+```
+
+Detalhes em [`composite-action/README.md`](composite-action/README.md).
+
 ## Requisitos
 
 - [Bun](https://bun.sh) >= 1.2.0
@@ -187,4 +217,6 @@ eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
 - ✅ **v2.4** — Templates: `eco new <nome> --template=cli-tool|library`
 - ✅ **v2.5** — Template `backend-fastify` (Fastify + Zod + Vitest)
 - ✅ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
-- ⏳ **v2.7** — Ecossistema: Composite GitHub Action, code signing, docs site
+- ✅ **v2.7** — Ecossistema: Composite GitHub Action + autocompletion (bash/zsh/fish)
+- ⏳ **v2.8** — Code signing (Windows signtool, macOS codesign + notarization)
+- ⏳ **v2.9** — Docs site (Astro/VitePress) + guias de migração

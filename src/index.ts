@@ -5,6 +5,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { meta as checkMeta, runCheck } from "./commands/check.ts";
 import { meta as ciMeta, runCiGenerate } from "./commands/ci.ts";
+import {
+  meta as completionMeta,
+  runCompletion,
+} from "./commands/completion.ts";
 import { meta as configMeta, runConfigShow } from "./commands/config-show.ts";
 import { meta as doctorMeta, runDoctor } from "./commands/doctor.ts";
 import { meta as infoMeta, runInfo } from "./commands/info.ts";
@@ -44,6 +48,7 @@ const COMMAND_META = {
   package: packageMeta,
   obfuscate: obfuscateMeta,
   release: releaseMeta,
+  completion: completionMeta,
 } as const;
 
 function rootHelp(): string {
@@ -133,6 +138,11 @@ try {
 
   if (command === "info") {
     await runInfo();
+    process.exit(0);
+  }
+
+  if (command === "completion") {
+    runCompletion(positional[0]);
     process.exit(0);
   }
 

@@ -1,0 +1,74 @@
+name: 'Eco'
+description: 'Run eco commands (init, check, package, obfuscate, release) in your workflow with Bun pre-installed.'
+author: 'dixavier27'
+branding:
+  icon: 'package'
+  color: 'green'
+
+inputs:
+  command:
+    description: 'Eco command to run (e.g. "release", "package", "check", "release --keep-going").'
+    required: true
+  platforms:
+    description: 'Override platforms (comma-separated, e.g. "linux,win"). Passed as --platforms.'
+    required: false
+    default: ''
+  bun-version:
+    description: 'Bun version to install.'
+    required: false
+    default: '1.2.0'
+  working-directory:
+    description: 'Working directory to run eco from.'
+    required: false
+    default: '.'
+  install:
+    description: 'Run "bun install --frozen-lockfile" before the command.'
+    required: false
+    default: 'true'
+  upload-artifacts:
+    description: 'Upload release/ as workflow artifact after the command.'
+    required: false
+    default: 'false'
+  artifact-name:
+    description: 'Name of the uploaded artifact (when upload-artifacts=true).'
+    required: false
+    default: 'eco-release'
+
+outputs:
+  release-dir:
+    description: 'Absolute path to the release/ directory (created by "eco release").'
+    value: ${{ steps.eco.outputs.release-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: bun install --frozen-lockfile
+
+    - name: Run eco
+      id: eco
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -n "${{ inputs.platforms }}" ]; then
+          bunx eco ${{ inputs.command }} --platforms=${{ inputs.platforms }}
+        else
+          bunx eco ${{ inputs.command }}
+        fi
+        echo "release-dir=$(pwd)/release" >> "$GITHUB_OUTPUT"
+
+    - name: Upload artifacts
+      if: inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.working-directory }}/release/
+        if-no-files-found: warn
