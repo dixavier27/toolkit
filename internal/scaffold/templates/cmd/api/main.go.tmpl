@@ -1,0 +1,19 @@
+package main
+
+import (
+	"log"
+	"net/http"
+
+	apphttp "{{.Module}}/internal/http"
+	"{{.Module}}/internal/config"
+)
+
+func main() {
+	cfg := config.Load()
+	srv := apphttp.NewServer(cfg)
+
+	log.Printf("listening on %s", cfg.Addr)
+	if err := http.ListenAndServe(cfg.Addr, srv); err != nil {
+		log.Fatal(err)
+	}
+}

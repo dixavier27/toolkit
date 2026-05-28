@@ -1,0 +1,17 @@
+package config
+
+import "os"
+
+// Config agrupa as opções de runtime da API.
+type Config struct {
+	Addr string
+}
+
+// Load lê variáveis de ambiente e devolve a configuração efetiva.
+func Load() Config {
+	addr := os.Getenv("ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	return Config{Addr: addr}
+}
