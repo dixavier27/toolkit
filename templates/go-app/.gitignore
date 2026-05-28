@@ -1,0 +1,21 @@
+# Binários e artefatos
+dist/
+release/
+tmp/
+
+# Cobertura
+coverage.out
+coverage.html
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

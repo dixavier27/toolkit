@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "eco",
-  description: "🌱 Toolkit de build, package, obfuscate e release para apps Bun",
+  description: "🌱 Toolkit de build, release e scaffolding para apps Bun e Go",
   lang: "pt-BR",
   cleanUrls: true,
   base: "/eco/",
@@ -55,6 +55,7 @@ export default defineConfig({
           items: [
             { text: "Pipeline", link: "/guide/pipeline" },
             { text: "Hooks", link: "/guide/hooks" },
+            { text: "Aplicações Go", link: "/guide/go" },
           ],
         },
       ],

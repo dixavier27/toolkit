@@ -1,7 +1,7 @@
 {
   "name": "@dixavier27/eco",
-  "version": "2.0.0",
-  "description": "eco — toolkit de build, package, obfuscate e release para apps Bun",
+  "version": "2.9.0",
+  "description": "eco — toolkit de build, release e scaffolding para apps Bun e Go",
   "type": "module",
   "bin": {
     "eco": "./dist/index.js"

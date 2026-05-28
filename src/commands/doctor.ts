@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { $ } from "bun";
 import { type EcoConfig, getConfigPath } from "../config.ts";
 import type { CommandMeta } from "../utils/command-meta.ts";
+import { detectLang } from "../utils/detect-lang.ts";
 import { log, pc } from "../utils/logger.ts";
 import { runScriptsInject } from "./scripts.ts";
 
@@ -221,24 +222,105 @@ function checkPlatformsHost(config: EcoConfig): DiagnosticResult {
   };
 }
 
+async function checkGo(): Promise<DiagnosticResult> {
+  try {
+    const result = await $`go version`.text();
+    const match = result.match(/go(\d+)\.(\d+)/);
+    if (!match) {
+      return {
+        status: "warn",
+        label: "Go >= 1.22",
+        detail: `versão não reconhecida: ${result.trim()}`,
+      };
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const ok = major > 1 || (major === 1 && minor >= 22);
+    return {
+      status: ok ? "ok" : "fail",
+      label: "Go >= 1.22",
+      detail: `instalado: ${result.trim()}`,
+    };
+  } catch {
+    return {
+      status: "fail",
+      label: "Go >= 1.22",
+      detail: "não encontrado no PATH — instale em https://go.dev/dl/",
+    };
+  }
+}
+
+async function checkAir(): Promise<DiagnosticResult> {
+  try {
+    await $`air -v`.quiet();
+    return { status: "ok", label: "air (hot-reload) no PATH" };
+  } catch {
+    return {
+      status: "warn",
+      label: "air (hot-reload) no PATH",
+      detail: "instale com 'go install github.com/air-verse/air@latest'",
+    };
+  }
+}
+
+async function checkGolangciLint(): Promise<DiagnosticResult> {
+  try {
+    await $`golangci-lint --version`.quiet();
+    return { status: "ok", label: "golangci-lint no PATH" };
+  } catch {
+    return {
+      status: "warn",
+      label: "golangci-lint no PATH",
+      detail:
+        "instale com 'go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest'",
+    };
+  }
+}
+
+function checkGoMod(): DiagnosticResult {
+  const path = resolve(process.cwd(), "go.mod");
+  if (!existsSync(path)) {
+    return {
+      status: "fail",
+      label: "go.mod",
+      detail: "arquivo não encontrado",
+    };
+  }
+  return { status: "ok", label: "go.mod", detail: path };
+}
+
 export interface DoctorOptions {
   fix?: boolean;
 }
 
 export async function runDoctor(config: EcoConfig, opts: DoctorOptions = {}) {
-  log.info(pc.bold("🩺 Diagnóstico eco"));
+  const lang = detectLang();
+  log.info(
+    pc.bold(
+      `🩺 Diagnóstico eco ${lang === "go" ? pc.dim("(projeto Go)") : ""}`,
+    ),
+  );
   log.info("");
 
-  const diagnostics: DiagnosticResult[] = [
-    checkConfigFile(),
-    checkEntry(config),
-    checkObfuscatorConfig(config),
-    checkPlatformsHost(config),
-    checkGitignore(),
-    checkPackageScripts(),
-    await checkBun(),
-    await checkObfuscator(),
-  ];
+  const diagnostics: DiagnosticResult[] =
+    lang === "go"
+      ? [
+          checkGoMod(),
+          checkGitignore(),
+          await checkGo(),
+          await checkAir(),
+          await checkGolangciLint(),
+        ]
+      : [
+          checkConfigFile(),
+          checkEntry(config),
+          checkObfuscatorConfig(config),
+          checkPlatformsHost(config),
+          checkGitignore(),
+          checkPackageScripts(),
+          await checkBun(),
+          await checkObfuscator(),
+        ];
 
   for (const d of diagnostics) {
     const detail = d.detail ? pc.dim(` — ${d.detail}`) : "";

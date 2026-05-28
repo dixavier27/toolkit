@@ -1,81 +1,105 @@
-import { mkdirSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
+import { basename, resolve } from "node:path";
 import { $ } from "bun";
-import type { EcoConfig } from "../config.ts";
+import type { EcoConfig, Platform } from "../config.ts";
 import { writeChecksumsFile } from "../utils/checksum.ts";
-import type { CommandMeta } from "../utils/command-meta.ts";
-import { detectLang } from "../utils/detect-lang.ts";
 import { log, pc } from "../utils/logger.ts";
 import { type Column, fileSize, renderTable } from "../utils/table.ts";
 import { formatDuration, timed } from "../utils/timing.ts";
-import { runObfuscate } from "./obfuscate.ts";
-import { type RunOptions, runPackage } from "./package.ts";
-import { runReleaseGo } from "./release-go.ts";
 
-export const meta: CommandMeta = {
-  name: "release",
-  description: "Pipeline completo: package → obfuscate → binários nativos",
-  flags: [
-    { name: "--skip-obfuscate", description: "Pula a etapa de ofuscação" },
-    {
-      name: "--keep-going",
-      description: "Continua mesmo se uma plataforma falhar",
-    },
-    { name: "--no-parallel", description: "Compila plataformas em sequência" },
-    { name: "--dry-run", description: "Mostra os comandos sem executar" },
-  ],
-  examples: [
-    "eco release",
-    "eco release --skip-obfuscate",
-    "eco release --platforms=linux,win --verbose",
-    "eco release --keep-going",
-  ],
-};
-
-const bunTargets: Record<string, string> = {
-  linux: "bun-linux-x64",
-  win: "bun-windows-x64",
-  macos: "bun-darwin-x64",
-  "macos-arm64": "bun-darwin-arm64",
-};
-
-const ext: Record<string, string> = {
-  win: ".exe",
-};
-
-export interface ReleaseOptions extends RunOptions {
-  skipObfuscate?: boolean;
+export interface ReleaseGoOptions {
+  dryRun?: boolean;
   keepGoing?: boolean;
   parallel?: boolean;
 }
 
-interface ReleaseArtifact {
-  platform: string;
+interface GoTarget {
+  goos: string;
+  goarch: string;
+  ext: string;
+}
+
+const GO_TARGETS: Record<Platform, GoTarget> = {
+  linux: { goos: "linux", goarch: "amd64", ext: "" },
+  win: { goos: "windows", goarch: "amd64", ext: ".exe" },
+  macos: { goos: "darwin", goarch: "amd64", ext: "" },
+  "macos-arm64": { goos: "darwin", goarch: "arm64", ext: "" },
+};
+
+interface GoArtifact {
+  platform: Platform;
   outfile: string;
   durationMs: number;
   status: "ok" | "failed";
   error?: string;
 }
 
-async function compileOne(
-  platform: string,
-  bundle: string,
+function readVersion(cwd: string): string {
+  try {
+    return readFileSync(resolve(cwd, "VERSION"), "utf8").trim() || "dev";
+  } catch {
+    return "dev";
+  }
+}
+
+function detectEntryPackage(cwd: string, releaseName: string): string {
+  const cmdDir = resolve(cwd, "cmd");
+  if (existsSync(cmdDir)) {
+    const candidates = readdirSync(cmdDir).filter((entry) => {
+      const path = resolve(cmdDir, entry);
+      return (
+        statSync(path).isDirectory() && existsSync(resolve(path, "main.go"))
+      );
+    });
+    if (candidates.includes(releaseName)) return `./cmd/${releaseName}`;
+    if (candidates.length === 1) return `./cmd/${candidates[0]}`;
+    if (candidates.length > 1) {
+      throw new Error(
+        `Múltiplos pacotes em cmd/: ${candidates.join(", ")}. Renomeie ou ajuste 'releaseName' no eco.config.js.`,
+      );
+    }
+  }
+  if (existsSync(resolve(cwd, "main.go"))) return ".";
+  throw new Error(
+    "Não encontrei entry Go. Esperado cmd/<nome>/main.go ou main.go na raiz.",
+  );
+}
+
+async function compileOnePlatform(
+  platform: Platform,
+  entry: string,
   releaseName: string,
+  ldflags: string,
   dryRun: boolean,
-): Promise<ReleaseArtifact> {
-  const target = bunTargets[platform];
-  const outfile = `release/${releaseName}-${platform}${ext[platform] ?? ""}`;
+): Promise<GoArtifact> {
+  const target = GO_TARGETS[platform];
+  const outfile = `release/${releaseName}-${platform}${target.ext}`;
 
   if (dryRun) {
     log.info(pc.cyan(`🚀 [dry-run] Compile ${platform} → ${outfile}`));
     log.dim(
-      `   bun build ${bundle} --compile --target=${target} --outfile ${outfile}`,
+      `   GOOS=${target.goos} GOARCH=${target.goarch} go build -ldflags "${ldflags}" -o ${outfile} ${entry}`,
     );
     return { platform, outfile, durationMs: 0, status: "ok" };
   }
 
   try {
+    const env = {
+      ...process.env,
+      GOOS: target.goos,
+      GOARCH: target.goarch,
+      CGO_ENABLED: "0",
+    };
     const { durationMs } = await timed(async () => {
-      await $`bun build ${bundle} --compile --target=${target} --outfile ${outfile}`.quiet();
+      await $`go build -ldflags ${ldflags} -o ${outfile} ${entry}`
+        .env(env)
+        .quiet();
     });
     log.info(
       `${pc.green("🚀")} ${pc.bold(platform.padEnd(11))} ${pc.dim(`→ ${outfile}`)} ${pc.dim(`(${formatDuration(durationMs)})`)}`,
@@ -94,49 +118,38 @@ async function compileOne(
   }
 }
 
-export async function runRelease(config: EcoConfig, opts: ReleaseOptions = {}) {
-  const lang = detectLang();
-  if (lang === "go") {
-    await runReleaseGo(config, {
-      dryRun: opts.dryRun,
-      keepGoing: opts.keepGoing,
-      parallel: opts.parallel,
-    });
-    return;
-  }
-  if (lang === "ambiguous") {
-    throw new Error(
-      "Diretório contém go.mod e package.json. eco release não sabe qual usar — separe os projetos.",
-    );
-  }
-  // 'none' segue como Bun (mantém comportamento anterior: erra mais à frente se faltar entry)
-
-  await runPackage(config, opts);
-  if (!opts.skipObfuscate) await runObfuscate(config, opts);
-
-  const bundle = `${config.outDir}/${config.bundleName}`;
-  if (!opts.dryRun) mkdirSync("release", { recursive: true });
-
-  const useParallel = opts.parallel !== false && config.parallel;
+export async function runReleaseGo(
+  config: EcoConfig,
+  opts: ReleaseGoOptions = {},
+) {
+  const cwd = process.cwd();
+  const name =
+    config.releaseName !== "app" ? config.releaseName : basename(cwd);
+  const entry = detectEntryPackage(cwd, name);
+  const version = readVersion(cwd);
+  const ldflags = `-s -w -X main.version=${version}`;
   const dryRun = opts.dryRun === true;
 
+  if (!dryRun) mkdirSync("release", { recursive: true });
+
+  const useParallel = opts.parallel !== false && config.parallel;
   log.info(
     pc.dim(
       `\n🔧 Compilando ${config.platforms.length} plataforma${config.platforms.length !== 1 ? "s" : ""} ${useParallel ? "em paralelo" : "em sequência"}…\n`,
     ),
   );
 
-  let artifacts: ReleaseArtifact[];
+  let artifacts: GoArtifact[];
   if (useParallel) {
     artifacts = await Promise.all(
       config.platforms.map((p) =>
-        compileOne(p, bundle, config.releaseName, dryRun),
+        compileOnePlatform(p, entry, name, ldflags, dryRun),
       ),
     );
   } else {
     artifacts = [];
     for (const p of config.platforms) {
-      const r = await compileOne(p, bundle, config.releaseName, dryRun);
+      const r = await compileOnePlatform(p, entry, name, ldflags, dryRun);
       artifacts.push(r);
       if (r.status === "failed" && !opts.keepGoing) {
         throw new Error(
@@ -176,7 +189,7 @@ export async function runRelease(config: EcoConfig, opts: ReleaseOptions = {}) {
   }
 }
 
-function printSummary(artifacts: ReleaseArtifact[]) {
+function printSummary(artifacts: GoArtifact[]) {
   log.info("");
   log.info(pc.bold("Release pronto:"));
   const columns: Column[] = [
