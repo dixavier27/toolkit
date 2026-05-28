@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { $ } from "bun";
 import { type EcoConfig, getConfigPath } from "../config.ts";
 import type { CommandMeta } from "../utils/command-meta.ts";
+import { detectLang } from "../utils/detect-lang.ts";
 import { log, pc } from "../utils/logger.ts";
 
 export const meta: CommandMeta = {
@@ -107,18 +108,61 @@ function checkPlatformsHost(config: EcoConfig): CheckResult {
   return { status: "ok", label: `platforms: ${config.platforms.join(", ")}` };
 }
 
+async function checkGoVersion(): Promise<CheckResult> {
+  try {
+    const result = await $`go version`.text();
+    const match = result.match(/go(\d+)\.(\d+)/);
+    if (!match) {
+      return {
+        status: "warn",
+        label: "Go >= 1.22",
+        detail: `versão não reconhecida: ${result.trim()}`,
+      };
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const ok = major > 1 || (major === 1 && minor >= 22);
+    return {
+      status: ok ? "ok" : "fail",
+      label: "Go >= 1.22",
+      detail: `instalado: ${result.trim()}`,
+    };
+  } catch {
+    return {
+      status: "fail",
+      label: "Go >= 1.22",
+      detail: "não encontrado no PATH",
+    };
+  }
+}
+
+function checkGoMod(): CheckResult {
+  const path = resolve(process.cwd(), "go.mod");
+  return existsSync(path)
+    ? { status: "ok", label: "go.mod", detail: path }
+    : { status: "fail", label: "go.mod", detail: "arquivo não encontrado" };
+}
+
 export async function runCheck(config: EcoConfig) {
-  log.info(pc.bold("🔍 Verificando ambiente eco"));
+  const lang = detectLang();
+  log.info(
+    pc.bold(
+      `🔍 Verificando ambiente eco ${lang === "go" ? pc.dim("(projeto Go)") : ""}`,
+    ),
+  );
   log.info("");
 
-  const results: CheckResult[] = [
-    checkConfigFile(),
-    checkEntry(config),
-    checkObfuscatorConfig(config),
-    checkPlatformsHost(config),
-    await checkBunVersion(),
-    await checkObfuscator(),
-  ];
+  const results: CheckResult[] =
+    lang === "go"
+      ? [checkGoMod(), checkPlatformsHost(config), await checkGoVersion()]
+      : [
+          checkConfigFile(),
+          checkEntry(config),
+          checkObfuscatorConfig(config),
+          checkPlatformsHost(config),
+          await checkBunVersion(),
+          await checkObfuscator(),
+        ];
 
   for (const r of results) {
     const detail = r.detail ? pc.dim(` — ${r.detail}`) : "";

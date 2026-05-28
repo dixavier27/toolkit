@@ -1,0 +1,33 @@
+.PHONY: dev build test lint fmt cover tidy clean
+
+NAME := {{name}}
+OUT  := dist/$(NAME)
+VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
+LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
+
+dev:
+	go run ./cmd/$(NAME) hello
+
+build:
+	@mkdir -p dist
+	go build $(LDFLAGS) -o $(OUT) ./cmd/$(NAME)
+
+test:
+	go test -v -cover ./...
+
+lint:
+	golangci-lint run
+
+fmt:
+	gofmt -w .
+	goimports -w .
+
+cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
+tidy:
+	go mod tidy
+
+clean:
+	rm -rf dist release coverage.out coverage.html

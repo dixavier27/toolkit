@@ -1,6 +1,6 @@
 # eco
 
-🌱 Toolkit de build, package, obfuscate e release para apps Bun — um ecossistema de ferramentas para empacotar e distribuir aplicações em múltiplas plataformas.
+🌱 Toolkit de build, release e scaffolding para apps **Bun e Go** — um ecossistema de ferramentas para empacotar e distribuir aplicações em múltiplas plataformas.
 
 📚 **Documentação completa:** [dixavier27.github.io/eco](https://dixavier27.github.io/eco/)
 
@@ -44,7 +44,7 @@ A superfície pública do eco tem três camadas: **CLI** (comandos), **config** 
 
 | Comando | Descrição |
 |---------|-----------|
-| `eco new <nome>` | Cria projeto novo a partir de template (`--template=cli-tool\|library`) |
+| `eco new <nome>` | Cria projeto novo: Bun (`--template=cli-tool\|library\|backend-fastify\|frontend-angular-tauri`) ou Go (`--go [--cli] [--api]`) |
 | `eco init` | Cria `eco.config.js` com defaults inferidos do `package.json` |
 | `eco check` | Valida config e ambiente (entry, obfuscator, Bun, cross-compile) |
 | `eco doctor` | Diagnóstico extendido com `--fix` para autocorrigir problemas |
@@ -52,9 +52,10 @@ A superfície pública do eco tem três camadas: **CLI** (comandos), **config** 
 | `eco config show` | Imprime o config resolvido (com defaults) em JSON |
 | `eco scripts inject` | Adiciona scripts do eco no `package.json` |
 | `eco ci generate` | Gera `.github/workflows/ci.yml` e `release.yml` |
-| `eco package` | Gera o bundle JS único |
-| `eco obfuscate` | Ofusca o bundle (requer `package` antes) |
-| `eco release` | Pipeline completo: package → obfuscate → binários nativos |
+| `eco build` | **Detecção automática**: Bun → bundle JS; Go → binário nativo |
+| `eco package` | Gera o bundle JS único (Bun-only) |
+| `eco obfuscate` | Ofusca o bundle (Bun-only; requer `package` antes) |
+| `eco release` | Pipeline completo. Bun: package → obfuscate → binários. Go: cross-compile direto via `go build` |
 | `eco completion <shell>` | Emite script de autocomplete para `bash`, `zsh` ou `fish` |
 
 Agrupados por intenção:
@@ -187,6 +188,62 @@ Hooks disponíveis: `afterPackage` (após bundle), `afterObfuscate` (após ofusc
 
 > ⚠️ Cross-compile de `macos-*` em runners não-Darwin pode falhar. Use `macos-latest` no CI ou rode `eco check` para validar.
 
+### Mapeamento Go (`GOOS`/`GOARCH`)
+
+Para projetos Go, `eco release` traduz as plataformas para `GOOS`/`GOARCH`:
+
+| `--platforms` | `GOOS` | `GOARCH` |
+|---|---|---|
+| `linux` | linux | amd64 |
+| `win` | windows | amd64 |
+| `macos` | darwin | amd64 |
+| `macos-arm64` | darwin | arm64 |
+
+## Aplicações Go
+
+A partir da v2.9, `eco new` também cria projetos Go via flag `--go`, e `eco build`/`eco release` detectam automaticamente a linguagem.
+
+```bash
+eco new minha-cli --go                              # CLI puro com Cobra
+eco new minha-api --go --api                        # API REST stdlib (Go 1.22+)
+eco new meu-app --go --cli --api                    # CLI + API no mesmo binário
+eco new meu-app --go --cli --api \
+  --module=github.com/user/meu-app                  # módulo Go customizado
+```
+
+Dependências runtime: **Cobra** (se `--cli`) e **go-playground/validator** (se `--api`). Tudo o mais é stdlib.
+
+Estrutura gerada:
+
+```
+meu-app/
+  cmd/meu-app/main.go     # entrypoint
+  internal/cli/           # subcomandos Cobra (se --cli)
+  internal/api/           # net/http stdlib + validator (se --api)
+  Makefile                # dev, build, test, lint, fmt, cover, tidy
+  .air.toml               # hot-reload (se --api)
+  .golangci.yml
+  VERSION                 # embutido no binário via -ldflags
+  .github/workflows/      # ci.yml + release.yml com matriz GOOS/GOARCH
+```
+
+Build/release usam `go build` nativo:
+
+```bash
+eco build                                    # detecta go.mod, gera binário em dist/
+eco release --platforms=linux,win,macos      # cross-compile em release/
+```
+
+Dependências dev (instaláveis via `go install`):
+
+```bash
+go install github.com/air-verse/air@latest                              # hot-reload
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest   # lint
+go install golang.org/x/tools/cmd/goimports@latest                       # formatação
+```
+
+Guia completo: [docs/guide/go.md](docs/guide/go.md) ou [site](https://dixavier27.github.io/eco/guide/go).
+
 ## Integração no `package.json` do seu projeto
 
 ```json
@@ -270,4 +327,5 @@ eco doctor --fix         # cria .gitignore e obfuscator.config.cjs
 - ✅ **v2.6** — Template `frontend-angular-tauri` (Angular + Tauri + Tailwind)
 - ✅ **v2.7** — Ecossistema: Composite GitHub Action + autocompletion (bash/zsh/fish)
 - ✅ **v2.8** — Docs site VitePress + guias de migração ([dixavier27.github.io/eco](https://dixavier27.github.io/eco/))
+- ✅ **v2.9** — Suporte a Go: `eco new --go [--cli] [--api]`, `eco build`/`release` com detecção automática, template componível com Cobra + net/http stdlib + air + golangci-lint
 - ⏳ **Deferred** — Code signing (Windows signtool, macOS codesign + notarization) — implementaremos quando houver consumidor exigindo

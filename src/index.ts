@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { meta as buildMeta, runBuild } from "./commands/build.ts";
 import { meta as checkMeta, runCheck } from "./commands/check.ts";
 import { meta as ciMeta, runCiGenerate } from "./commands/ci.ts";
 import {
@@ -20,6 +21,7 @@ import { meta as releaseMeta, runRelease } from "./commands/release.ts";
 import { runScriptsInject, meta as scriptsMeta } from "./commands/scripts.ts";
 import { loadConfig } from "./config.ts";
 import { renderCommandHelp } from "./utils/command-meta.ts";
+import { detectLang } from "./utils/detect-lang.ts";
 import { parseArgs } from "./utils/flags.ts";
 import { log, pc, setLogLevel } from "./utils/logger.ts";
 
@@ -45,6 +47,7 @@ const COMMAND_META = {
   config: configMeta,
   scripts: scriptsMeta,
   ci: ciMeta,
+  build: buildMeta,
   package: packageMeta,
   obfuscate: obfuscateMeta,
   release: releaseMeta,
@@ -54,7 +57,7 @@ const COMMAND_META = {
 function rootHelp(): string {
   const lines: string[] = [];
   lines.push(
-    `${pc.bold("eco")} — toolkit de build, package, obfuscate e release para apps Bun`,
+    `${pc.bold("eco")} — toolkit de build, release e scaffolding para apps Bun e Go`,
   );
   lines.push("");
   lines.push(`Uso:  ${pc.cyan("eco <comando> [flags]")}`);
@@ -116,7 +119,9 @@ try {
   if (command === "new") {
     const projectName = positional[0];
     if (!projectName) {
-      console.error("Uso: eco new <nome-do-projeto> [--template=<tipo>]\n");
+      console.error(
+        "Uso: eco new <nome-do-projeto> [--template=<tipo>] [--go [--cli] [--api]]\n",
+      );
       console.error(renderCommandHelp(newMeta));
       process.exit(1);
     }
@@ -124,9 +129,16 @@ try {
     const template = templateFlag?.slice("--template=".length) as
       | "cli-tool"
       | "library"
+      | "backend-fastify"
+      | "frontend-angular-tauri"
       | undefined;
+    const moduleFlag = rest.find((f) => f.startsWith("--module="));
+    const moduleName = moduleFlag?.slice("--module=".length);
     const force = rest.includes("--force");
-    runNew({ projectName, template, force });
+    const go = rest.includes("--go");
+    const cli = rest.includes("--cli");
+    const api = rest.includes("--api");
+    runNew({ projectName, template, force, go, cli, api, module: moduleName });
     process.exit(0);
   }
 
@@ -220,10 +232,23 @@ try {
 
   const opts = { dryRun: flags.dryRun };
 
-  if (command === "package") {
+  if (command === "build") {
+    const watch = rest.includes("--watch");
+    await runBuild(config, { ...opts, watch });
+  } else if (command === "package") {
+    if (detectLang() === "go") {
+      throw new Error(
+        "eco package é específico do pipeline Bun. Para Go, use 'eco build'.",
+      );
+    }
     const watch = rest.includes("--watch");
     await runPackage(config, { ...opts, watch });
   } else if (command === "obfuscate") {
+    if (detectLang() === "go") {
+      throw new Error(
+        "eco obfuscate é específico do pipeline Bun (binários Go já são compilados).",
+      );
+    }
     await runObfuscate(config, opts);
   } else if (command === "release") {
     const skipObfuscate = rest.includes("--skip-obfuscate");
