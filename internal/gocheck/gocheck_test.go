@@ -54,6 +54,21 @@ func TestExtractModule(t *testing.T) {
 	}
 }
 
+func TestCheckCCompiler_Smoke(t *testing.T) {
+	c := CheckCCompiler()
+	if c.Name != "compilador C (-race)" {
+		t.Errorf("name = %q", c.Name)
+	}
+	// Deve ser OK (compilador encontrado) ou Warn (ausente) — nunca crítico,
+	// pois a ausência do detector de race não deve reprovar o ambiente.
+	if c.Status != StatusOK && c.Status != StatusWarn {
+		t.Errorf("status = %v, quer StatusOK ou StatusWarn", c.Status)
+	}
+	if c.Status == StatusWarn && c.Suggestion == "" {
+		t.Error("Warn sem Suggestion de instalação")
+	}
+}
+
 func TestCheckGo_Smoke(t *testing.T) {
 	// Não asserta versão específica; só que CheckGo não panica e devolve algum status.
 	c := CheckGo()

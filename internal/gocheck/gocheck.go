@@ -159,6 +159,29 @@ func CheckAir() Check {
 	return c
 }
 
+// CheckCCompiler verifica se há um compilador C disponível no PATH, necessário
+// para `go test -race` (o detector de race exige CGO_ENABLED=1, que por sua vez
+// precisa de um compilador C). No Windows o Go não traz um compilador C, então
+// é preciso instalar gcc separadamente. A ausência é apenas um alerta (Warn):
+// o restante do fluxo funciona sem o detector de race.
+func CheckCCompiler() Check {
+	c := Check{Name: "compilador C (-race)"}
+
+	for _, bin := range []string{"gcc", "clang", "cc"} {
+		if path, err := exec.LookPath(bin); err == nil {
+			c.Path = path
+			c.Status = StatusOK
+			c.Message = fmt.Sprintf("%s disponível — `go test -race` habilitado", bin)
+			return c
+		}
+	}
+
+	c.Status = StatusWarn
+	c.Message = "nenhum compilador C no PATH — `go test -race` indisponível (exige CGO_ENABLED=1)"
+	c.Suggestion = installInstructionsCC()
+	return c
+}
+
 // CheckGoMod verifica se há um projeto Go no diretório atual (presença de go.mod).
 // Retorna StatusOK quando há go.mod válido, StatusMissing quando não há projeto.
 func CheckGoMod(dir string) Check {
@@ -201,6 +224,7 @@ func CheckGoMod(dir string) Check {
 func CheckAll(dir string) []Check {
 	checks := []Check{
 		CheckGo(),
+		CheckCCompiler(),
 		CheckGolangciLint(),
 		CheckAir(),
 	}
@@ -230,5 +254,18 @@ func installInstructionsGo() string {
 		return "https://go.dev/dl/  (apt/dnf/pacman podem ter versão antiga)"
 	default:
 		return "https://go.dev/dl/"
+	}
+}
+
+func installInstructionsCC() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "instale gcc (TDM-GCC https://jmeubank.github.io/tdm-gcc/ ou `winget install --id MSYS2.MSYS2`) e garanta CGO_ENABLED=1"
+	case "darwin":
+		return "xcode-select --install"
+	case "linux":
+		return "apt install build-essential  (ou dnf groupinstall 'Development Tools')"
+	default:
+		return "instale um compilador C (gcc/clang) e habilite CGO_ENABLED=1"
 	}
 }
