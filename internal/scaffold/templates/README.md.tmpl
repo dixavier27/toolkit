@@ -1,0 +1,25 @@
+# {{.Name}}
+
+API REST em Go gerada pelo [eco](https://github.com/dixavier27/eco).
+
+## Rodar
+
+```bash
+go run ./cmd/api
+# em outro terminal:
+curl http://localhost:8080/healthz
+```
+
+## Estrutura
+
+```
+{{.Name}}/
+├── cmd/api/           # binário da API (entrypoint)
+├── internal/
+│   ├── http/          # servidor e rotas
+│   └── config/        # configuração
+├── api/               # contratos (OpenAPI)
+├── configs/           # arquivos de configuração
+├── go.mod
+└── Makefile
+```

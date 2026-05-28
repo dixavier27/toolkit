@@ -1,0 +1,14 @@
+package http
+
+import (
+	"net/http"
+
+	"{{.Module}}/internal/config"
+)
+
+// NewServer monta o handler raiz com todas as rotas registradas.
+func NewServer(cfg config.Config) http.Handler {
+	mux := http.NewServeMux()
+	registerRoutes(mux)
+	return mux
+}
