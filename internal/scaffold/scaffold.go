@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/dixavier27/eco/internal/tupavendor"
 )
 
 //go:embed all:templates
@@ -21,12 +23,14 @@ type Options struct {
 	Name   string // nome do diretório destino
 	Module string // go module path
 	Force  bool   // sobrescrever diretório não vazio
+	Tupa   bool   // usa tupa-go (vendored em internal/tupa) em vez de net/http puro
 }
 
 // Data é o contexto passado para cada template.
 type Data struct {
 	Name   string
 	Module string
+	Tupa   bool
 }
 
 // Generate cria o projeto em ./<opts.Name>. Devolve o caminho absoluto criado.
@@ -47,7 +51,7 @@ func Generate(opts Options) (string, error) {
 		return "", err
 	}
 
-	data := Data{Name: opts.Name, Module: opts.Module}
+	data := Data{Name: opts.Name, Module: opts.Module, Tupa: opts.Tupa}
 
 	walkErr := fs.WalkDir(templatesFS, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -58,21 +62,26 @@ func Generate(opts Options) (string, error) {
 		}
 
 		rel := strings.TrimPrefix(path, "templates/")
-		// Especial: gitignore.tmpl → .gitignore
-		outRel := strings.TrimSuffix(rel, ".tmpl")
-		if outRel == "gitignore" {
-			outRel = ".gitignore"
+		outRel, include := mapTemplatePath(rel, opts.Tupa)
+		if !include {
+			return nil
 		}
 		outPath := filepath.Join(dest, outRel)
 
 		if d.IsDir() {
 			return os.MkdirAll(outPath, 0o755)
 		}
-
 		return renderFile(path, outPath, data)
 	})
 	if walkErr != nil {
 		return "", walkErr
+	}
+
+	if opts.Tupa {
+		tupaDir := filepath.Join(dest, "internal", "tupa")
+		if err := tupavendor.Copy(tupaDir); err != nil {
+			return "", fmt.Errorf("copiar tupa vendored: %w", err)
+		}
 	}
 
 	if err := runGoModTidy(dest); err != nil {
@@ -81,6 +90,33 @@ func Generate(opts Options) (string, error) {
 	}
 
 	return dest, nil
+}
+
+// mapTemplatePath aplica as regras de inclusão/renomeação para variantes
+// _default e _tupa, e converte gitignore.tmpl → .gitignore.
+func mapTemplatePath(rel string, tupa bool) (outRel string, include bool) {
+	switch {
+	case strings.HasPrefix(rel, "_default/"):
+		if tupa {
+			return "", false
+		}
+		rel = strings.TrimPrefix(rel, "_default/")
+	case rel == "_default":
+		return "", false
+	case strings.HasPrefix(rel, "_tupa/"):
+		if !tupa {
+			return "", false
+		}
+		rel = strings.TrimPrefix(rel, "_tupa/")
+	case rel == "_tupa":
+		return "", false
+	}
+
+	outRel = strings.TrimSuffix(rel, ".tmpl")
+	if outRel == "gitignore" {
+		outRel = ".gitignore"
+	}
+	return outRel, true
 }
 
 func ensureDestDir(dest string, force bool) error {

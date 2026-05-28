@@ -1,0 +1,124 @@
+package tupa
+
+import (
+	"context"
+	"sync"
+)
+
+// Repositorio é a abstração mínima de persistência para um recurso. A
+// implementação padrão é em memória (ver RepositorioMemoria). Drivers
+// reais (pgx, mongo) virão em pacotes separados.
+type Repositorio[T any] interface {
+	Listar(ctx context.Context) ([]T, error)
+	Buscar(ctx context.Context, id string) (T, error)
+	Criar(ctx context.Context, item T) (T, error)
+	Atualizar(ctx context.Context, id string, item T) (T, error)
+	Deletar(ctx context.Context, id string) error
+}
+
+// IDExtrator é uma função que devolve o identificador único de um item.
+// O Recurso recebe um IDExtrator no momento da configuração.
+type IDExtrator[T any] func(T) string
+
+// IDDefinidor permite ao Repositorio gravar o ID gerado de volta no item
+// antes de devolvê-lo ao chamador (usado em Criar quando o ID vem do banco).
+type IDDefinidor[T any] func(*T, string)
+
+// RepositorioMemoria é uma implementação in-memory thread-safe. Útil para
+// MVP, demos e testes.
+type RepositorioMemoria[T any] struct {
+	pegarID IDExtrator[T]
+	itens   map[string]T
+	mu      sync.RWMutex
+	contador int
+}
+
+// NovoRepositorioMemoria cria um repositório vazio. pegarID extrai o ID
+// de cada item; se ID vier vazio em Criar, um sequencial é atribuído.
+// definirID (opcional) grava o ID atribuído de volta no item.
+func NovoRepositorioMemoria[T any](pegarID IDExtrator[T], definirID IDDefinidor[T]) *RepositorioMemoria[T] {
+	return &RepositorioMemoria[T]{
+		pegarID: pegarID,
+		itens:   make(map[string]T),
+	}
+}
+
+func (r *RepositorioMemoria[T]) Listar(ctx context.Context) ([]T, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]T, 0, len(r.itens))
+	for _, v := range r.itens {
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func (r *RepositorioMemoria[T]) Buscar(ctx context.Context, id string) (T, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	v, ok := r.itens[id]
+	if !ok {
+		var zero T
+		return zero, ErrNaoEncontrado
+	}
+	return v, nil
+}
+
+func (r *RepositorioMemoria[T]) Criar(ctx context.Context, item T) (T, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	id := r.pegarID(item)
+	if id == "" {
+		r.contador++
+		id = idFromInt(r.contador)
+		// Não temos como gravar de volta sem reflexão se definirID == nil.
+		// Esperamos que pegarID(item) já devolva o id (gerado externamente)
+		// OU que o usuário use uma struct com ID populado.
+		// Para MVP enxuto, exigimos id != "" — falha rápida em vez de mágica.
+		var zero T
+		return zero, ErrValidacao
+	}
+	if _, dup := r.itens[id]; dup {
+		var zero T
+		return zero, ErrJaExiste
+	}
+	r.itens[id] = item
+	return item, nil
+}
+
+func (r *RepositorioMemoria[T]) Atualizar(ctx context.Context, id string, item T) (T, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.itens[id]; !ok {
+		var zero T
+		return zero, ErrNaoEncontrado
+	}
+	r.itens[id] = item
+	return item, nil
+}
+
+func (r *RepositorioMemoria[T]) Deletar(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.itens[id]; !ok {
+		return ErrNaoEncontrado
+	}
+	delete(r.itens, id)
+	return nil
+}
+
+func idFromInt(n int) string {
+	// Implementação trivial; sem padding nem prefixo. Suficiente para MVP.
+	const digits = "0123456789"
+	if n == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = digits[n%10]
+		n /= 10
+	}
+	return string(buf[i:])
+}

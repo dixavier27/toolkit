@@ -1,0 +1,195 @@
+package tupa
+
+import (
+	"errors"
+	"net/http"
+	"strings"
+)
+
+// NomeavelRecurso é satisfeita por entidades que sabem se nomear. O nome
+// vira o segmento de URL default (ex.: "tarefas" → "/tarefas").
+type NomeavelRecurso interface {
+	NomeRecurso() string
+}
+
+// Recurso registra um recurso CRUD na App. As rotas montadas seguem o
+// padrão REST:
+//
+//	GET    /<nome>        → Listar
+//	GET    /<nome>/{id}   → Buscar
+//	POST   /<nome>        → Criar
+//	PUT    /<nome>/{id}   → Atualizar
+//	DELETE /<nome>/{id}   → Deletar
+//
+// T deve satisfazer NomeavelRecurso (método NomeRecurso() string).
+func Recurso[T NomeavelRecurso](app *App, opcoes ...OpcaoRecurso[T]) *DefinicaoRecurso[T] {
+	cfg := configRecurso[T]{}
+	for _, o := range opcoes {
+		o(&cfg)
+	}
+
+	var zero T
+	caminho := cfg.caminho
+	if caminho == "" {
+		caminho = "/" + strings.Trim(zero.NomeRecurso(), "/")
+	}
+
+	if cfg.pegarID == nil {
+		panic("tupa.Recurso: ComID é obrigatório")
+	}
+
+	if cfg.repo == nil {
+		cfg.repo = NovoRepositorioMemoria(cfg.pegarID, cfg.definirID)
+	}
+
+	def := &DefinicaoRecurso[T]{
+		nome:    zero.NomeRecurso(),
+		caminho: caminho,
+		repo:    cfg.repo,
+		ganchos: cfg.ganchos,
+	}
+	app.register(def)
+	return def
+}
+
+// DefinicaoRecurso é o handle público de um recurso registrado. Expõe o
+// repositório (útil para funcionalidades custom) e o caminho montado.
+type DefinicaoRecurso[T NomeavelRecurso] struct {
+	nome    string
+	caminho string
+	repo    Repositorio[T]
+	ganchos Ganchos[T]
+}
+
+// NomeRecurso satisfaz recursoMontavel.
+func (d *DefinicaoRecurso[T]) NomeRecurso() string { return d.nome }
+
+// Repositorio expõe o repo subjacente.
+func (d *DefinicaoRecurso[T]) Repositorio() Repositorio[T] { return d.repo }
+
+// Caminho devolve o caminho HTTP base montado.
+func (d *DefinicaoRecurso[T]) Caminho() string { return d.caminho }
+
+// montar registra as 5 rotas REST no ServeMux.
+func (d *DefinicaoRecurso[T]) montar(mux *http.ServeMux) {
+	base := d.caminho
+	idPath := base + "/{id}"
+
+	mux.HandleFunc("GET "+base, d.handleListar)
+	mux.HandleFunc("GET "+idPath, d.handleBuscar)
+	mux.HandleFunc("POST "+base, d.handleCriar)
+	mux.HandleFunc("PUT "+idPath, d.handleAtualizar)
+	mux.HandleFunc("DELETE "+idPath, d.handleDeletar)
+}
+
+func (d *DefinicaoRecurso[T]) handleListar(w http.ResponseWriter, r *http.Request) {
+	itens, err := d.repo.Listar(r.Context())
+	if err != nil {
+		ResponderErro(w, err)
+		return
+	}
+	if d.ganchos.DepoisDeListar != nil {
+		if err := d.ganchos.DepoisDeListar(r.Context(), itens); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	ResponderJSON(w, http.StatusOK, itens)
+}
+
+func (d *DefinicaoRecurso[T]) handleBuscar(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	item, err := d.repo.Buscar(r.Context(), id)
+	if err != nil {
+		ResponderErro(w, err)
+		return
+	}
+	if d.ganchos.DepoisDeBuscar != nil {
+		if err := d.ganchos.DepoisDeBuscar(r.Context(), &item); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	ResponderJSON(w, http.StatusOK, item)
+}
+
+func (d *DefinicaoRecurso[T]) handleCriar(w http.ResponseWriter, r *http.Request) {
+	var item T
+	if err := LerJSON(r, &item); err != nil {
+		ResponderErro(w, joinErro(ErrValidacao, err))
+		return
+	}
+	if d.ganchos.AntesDeCriar != nil {
+		if err := d.ganchos.AntesDeCriar(r.Context(), &item); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	criado, err := d.repo.Criar(r.Context(), item)
+	if err != nil {
+		ResponderErro(w, err)
+		return
+	}
+	if d.ganchos.DepoisDeCriar != nil {
+		if err := d.ganchos.DepoisDeCriar(r.Context(), &criado); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	ResponderJSON(w, http.StatusCreated, criado)
+}
+
+func (d *DefinicaoRecurso[T]) handleAtualizar(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var item T
+	if err := LerJSON(r, &item); err != nil {
+		ResponderErro(w, joinErro(ErrValidacao, err))
+		return
+	}
+	if d.ganchos.AntesDeAtualizar != nil {
+		if err := d.ganchos.AntesDeAtualizar(r.Context(), id, &item); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	atual, err := d.repo.Atualizar(r.Context(), id, item)
+	if err != nil {
+		ResponderErro(w, err)
+		return
+	}
+	if d.ganchos.DepoisDeAtualizar != nil {
+		if err := d.ganchos.DepoisDeAtualizar(r.Context(), &atual); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	ResponderJSON(w, http.StatusOK, atual)
+}
+
+func (d *DefinicaoRecurso[T]) handleDeletar(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if d.ganchos.AntesDeDeletar != nil {
+		if err := d.ganchos.AntesDeDeletar(r.Context(), id); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	if err := d.repo.Deletar(r.Context(), id); err != nil {
+		ResponderErro(w, err)
+		return
+	}
+	if d.ganchos.DepoisDeDeletar != nil {
+		if err := d.ganchos.DepoisDeDeletar(r.Context(), id); err != nil {
+			ResponderErro(w, err)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// joinErro empacota uma causa específica num erro canônico para que
+// errors.Is funcione no ResponderErro mas a mensagem detalhada chegue ao
+// cliente.
+func joinErro(canonico, causa error) error {
+	return errors.Join(canonico, causa)
+}

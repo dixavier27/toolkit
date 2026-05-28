@@ -1,0 +1,47 @@
+// Package http monta o servidor usando tupa-go (vendored em internal/tupa).
+package http
+
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"{{.Module}}/internal/config"
+	tupa "{{.Module}}/internal/tupa"
+)
+
+// Tarefa é o recurso de exemplo. Renomeie / remova / acrescente outros
+// conforme seu domínio.
+type Tarefa struct {
+	ID       string    `json:"id"`
+	Titulo   string    `json:"titulo"`
+	Status   string    `json:"status"`
+	CriadoEm time.Time `json:"criadoEm"`
+}
+
+// NomeRecurso satisfaz tupa.NomeavelRecurso. O retorno vira o segmento
+// de URL (aqui: /tarefas).
+func (Tarefa) NomeRecurso() string { return "tarefas" }
+
+// NewServer monta um http.Handler com a App tupa configurada.
+func NewServer(cfg config.Config) http.Handler {
+	app := tupa.NovaApp()
+
+	tupa.Recurso[Tarefa](app,
+		tupa.ComID[Tarefa](
+			func(t Tarefa) string { return t.ID },
+			func(t *Tarefa, id string) { t.ID = id },
+		),
+		tupa.ComGanchos(tupa.Ganchos[Tarefa]{
+			AntesDeCriar: func(ctx context.Context, t *Tarefa) error {
+				t.CriadoEm = time.Now()
+				if t.Status == "" {
+					t.Status = "Pendente"
+				}
+				return nil
+			},
+		}),
+	)
+
+	return app.MontarRoteador()
+}
