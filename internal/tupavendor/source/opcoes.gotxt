@@ -1,0 +1,43 @@
+package tupa
+
+// OpcaoRecurso configura um recurso na chamada Recurso[T](app, ...opcoes).
+type OpcaoRecurso[T any] func(*configRecurso[T])
+
+type configRecurso[T any] struct {
+	pegarID   IDExtrator[T]
+	definirID IDDefinidor[T]
+	repo      Repositorio[T]
+	ganchos   Ganchos[T]
+	caminho   string // opcional; default = "/" + NomeRecurso()
+}
+
+// ComID configura como extrair (e opcionalmente gravar) o ID dos itens.
+// Obrigatório para qualquer recurso.
+func ComID[T any](pegar IDExtrator[T], definir IDDefinidor[T]) OpcaoRecurso[T] {
+	return func(c *configRecurso[T]) {
+		c.pegarID = pegar
+		c.definirID = definir
+	}
+}
+
+// ComRepositorio injeta um repositório custom. Sem essa opção, o Recurso
+// usa um RepositorioMemoria.
+func ComRepositorio[T any](r Repositorio[T]) OpcaoRecurso[T] {
+	return func(c *configRecurso[T]) {
+		c.repo = r
+	}
+}
+
+// ComGanchos registra interceptadores de ciclo de vida.
+func ComGanchos[T any](g Ganchos[T]) OpcaoRecurso[T] {
+	return func(c *configRecurso[T]) {
+		c.ganchos = g
+	}
+}
+
+// ComCaminho sobrescreve o caminho HTTP base do recurso (default: "/" + nome).
+func ComCaminho[T any](caminho string) OpcaoRecurso[T] {
+	return func(c *configRecurso[T]) {
+		c.caminho = caminho
+	}
+}

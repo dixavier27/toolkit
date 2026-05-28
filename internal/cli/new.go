@@ -13,6 +13,7 @@ func newNewCmd() *cobra.Command {
 	var (
 		module string
 		force  bool
+		tupa   bool
 	)
 
 	cmd := &cobra.Command{
@@ -37,6 +38,7 @@ func newNewCmd() *cobra.Command {
 				Name:   name,
 				Module: module,
 				Force:  force,
+				Tupa:   tupa,
 			})
 			if err != nil {
 				return err
@@ -47,13 +49,19 @@ func newNewCmd() *cobra.Command {
 			fmt.Fprintf(out, "  cd %s\n", name)
 			fmt.Fprintln(out, "  go run ./cmd/api")
 			fmt.Fprintln(out, "  # em outro terminal:")
-			fmt.Fprintln(out, "  curl http://localhost:8080/healthz")
+			if tupa {
+				fmt.Fprintln(out, "  curl -X POST http://localhost:8080/tarefas -H 'Content-Type: application/json' -d '{\"id\":\"1\",\"titulo\":\"comprar pão\"}'")
+				fmt.Fprintln(out, "  curl http://localhost:8080/tarefas")
+			} else {
+				fmt.Fprintln(out, "  curl http://localhost:8080/healthz")
+			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&module, "module", "", "go module path (default: nome do projeto)")
 	cmd.Flags().BoolVar(&force, "force", false, "sobrescrever diretório não vazio")
+	cmd.Flags().BoolVar(&tupa, "tupa", false, "scaffolda usando tupa-go (vendored em internal/tupa) com Recurso[T] de exemplo")
 
 	return cmd
 }

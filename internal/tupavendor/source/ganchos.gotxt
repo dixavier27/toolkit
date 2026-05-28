@@ -1,0 +1,16 @@
+package tupa
+
+import "context"
+
+// Ganchos coleta interceptadores de ciclo de vida de um recurso.
+// Todos os campos são opcionais. Um gancho que retorna erro aborta a operação.
+type Ganchos[T any] struct {
+	AntesDeCriar     func(ctx context.Context, novo *T) error
+	DepoisDeCriar    func(ctx context.Context, criado *T) error
+	AntesDeAtualizar func(ctx context.Context, id string, alteracoes *T) error
+	DepoisDeAtualizar func(ctx context.Context, atualizado *T) error
+	AntesDeDeletar   func(ctx context.Context, id string) error
+	DepoisDeDeletar  func(ctx context.Context, id string) error
+	DepoisDeBuscar   func(ctx context.Context, encontrado *T) error
+	DepoisDeListar   func(ctx context.Context, itens []T) error
+}

@@ -1,0 +1,10 @@
+package tupa
+
+import "errors"
+
+// Erros canônicos. Use errors.Is para checar.
+var (
+	ErrNaoEncontrado = errors.New("recurso não encontrado")
+	ErrJaExiste      = errors.New("recurso já existe")
+	ErrValidacao    = errors.New("dados inválidos")
+)

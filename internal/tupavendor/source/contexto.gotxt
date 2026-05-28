@@ -1,0 +1,58 @@
+package tupa
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+)
+
+// Resposta é o envelope padrão de erro. Sucesso devolve o item/coleção direto.
+type Resposta struct {
+	Erro     string `json:"erro,omitempty"`
+	Codigo   string `json:"codigo,omitempty"`
+	Detalhes any    `json:"detalhes,omitempty"`
+}
+
+// LerJSON decodifica o corpo da requisição em destino. Limita a 1 MiB por padrão.
+func LerJSON(r *http.Request, destino any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(destino); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ResponderJSON serializa v como JSON com status. Sempre define Content-Type.
+func ResponderJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if v == nil {
+		return
+	}
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+// ResponderErro mapeia erros canônicos para status HTTP e devolve um envelope.
+// Erros não mapeados viram 500.
+func ResponderErro(w http.ResponseWriter, err error) {
+	status, codigo := statusDeErro(err)
+	ResponderJSON(w, status, Resposta{
+		Erro:   err.Error(),
+		Codigo: codigo,
+	})
+}
+
+func statusDeErro(err error) (int, string) {
+	switch {
+	case errors.Is(err, ErrNaoEncontrado):
+		return http.StatusNotFound, "nao_encontrado"
+	case errors.Is(err, ErrJaExiste):
+		return http.StatusConflict, "ja_existe"
+	case errors.Is(err, ErrValidacao):
+		return http.StatusBadRequest, "validacao"
+	default:
+		return http.StatusInternalServerError, "interno"
+	}
+}

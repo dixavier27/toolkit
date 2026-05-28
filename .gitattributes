@@ -1,0 +1,9 @@
+# Snapshot vendored do tupa-go — sempre LF para não gerar diff espúrio
+# entre execuções do sync em sistemas diferentes (Windows vs Linux/macOS).
+internal/tupavendor/source/* text eol=lf
+
+# Shell scripts: LF mandatório.
+*.sh text eol=lf
+
+# Arquivos Go: LF (convenção da comunidade).
+*.go text eol=lf

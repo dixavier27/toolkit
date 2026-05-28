@@ -1,0 +1,46 @@
+// Package tupa fornece a base de uma API REST em Go com DSL em PT-BR.
+//
+// O ponto de partida é uma App que agrega recursos. Cada recurso é uma
+// struct tipada registrada via Recurso[T](app, opcoes...). A App expõe
+// um http.Handler via MontarRoteador().
+//
+// Filosofia: net/http puro (1.22+ tem path params nativos), generics
+// para tipagem, Functional Options em PT-BR. Sem dependências externas
+// no núcleo — drivers de DB e auth virão em subpacotes.
+package tupa
+
+import (
+	"net/http"
+)
+
+// App agrega recursos e expõe um http.Handler.
+type App struct {
+	recursos []recursoMontavel
+	mux      *http.ServeMux
+}
+
+// NovaApp cria uma App vazia.
+func NovaApp() *App {
+	return &App{mux: http.NewServeMux()}
+}
+
+// recursoMontavel é a interface não-genérica que App usa para guardar
+// recursos de tipos diversos numa única lista. recursoDef[T] satisfaz.
+type recursoMontavel interface {
+	montar(mux *http.ServeMux)
+	NomeRecurso() string
+}
+
+// MontarRoteador devolve um http.Handler com todas as rotas dos recursos
+// registrados. Chame após registrar todos os recursos.
+func (a *App) MontarRoteador() http.Handler {
+	for _, r := range a.recursos {
+		r.montar(a.mux)
+	}
+	return a.mux
+}
+
+// register é usado por Recurso[T] para anexar um novo recurso à app.
+func (a *App) register(r recursoMontavel) {
+	a.recursos = append(a.recursos, r)
+}
