@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-// MinMajor / MinMinor é a versão mínima exigida do Go (1.22).
+// MinMajor / MinMinor é a versão mínima exigida do Go (1.26).
 const (
 	MinMajor = 1
-	MinMinor = 22
+	MinMinor = 26
 )
 
 // Result resume o resultado da verificação do Go.
