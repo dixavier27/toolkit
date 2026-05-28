@@ -17,6 +17,7 @@ func Execute(version string) error {
 	root.AddCommand(newDoctorCmd())
 	root.AddCommand(newNewCmd())
 	root.AddCommand(newBuildCmd())
+	root.AddCommand(newReleaseCmd())
 
 	return root.Execute()
 }
