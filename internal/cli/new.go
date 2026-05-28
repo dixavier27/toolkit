@@ -24,14 +24,13 @@ func newNewCmd() *cobra.Command {
 			name := args[0]
 
 			// Pré-check do Go.
-			res := gocheck.Check()
-			if !res.Found {
-				fmt.Fprintln(out, gocheck.InstallInstructions())
-				return fmt.Errorf("go não encontrado — rode `eco doctor` para detalhes")
-			}
-			if !res.MeetsMin {
-				return fmt.Errorf("versão do Go (%s) abaixo do mínimo %d.%d",
-					res.Version, gocheck.MinMajor, gocheck.MinMinor)
+			res := gocheck.CheckGo()
+			if !res.OK() {
+				fmt.Fprintf(out, "%s\n", res.Message)
+				if res.Suggestion != "" {
+					fmt.Fprintf(out, "  %s\n", res.Suggestion)
+				}
+				return fmt.Errorf("ambiente Go inválido — rode `eco doctor` para detalhes")
 			}
 
 			path, err := scaffold.Generate(scaffold.Options{
