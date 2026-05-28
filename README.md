@@ -4,6 +4,20 @@
 
 📚 **Documentação completa:** [dixavier27.github.io/eco](https://dixavier27.github.io/eco/)
 
+## O que o eco resolve
+
+Bun já tem `bun build` e `bun build --compile`, mas quando você quer **lançar** um app sério aparece o trabalho repetitivo de toda release:
+
+- **Bundle + ofuscação + cross-compile** em uma chamada (`eco release`), em paralelo, com `--keep-going` para tolerar falha em uma plataforma.
+- **Config validado com Zod** (`eco.config.js`) com defaults sensatos — sem flags soltas em scripts npm.
+- **Sourcemaps, assets declarativos, `define`, embed de versão e checksums SHA256** prontos, sem você escrever scripts de cópia/hash.
+- **Scaffolding** de projeto novo (`eco new`) com templates curados: CLI, library, backend Fastify+Zod, frontend Angular+Tauri.
+- **Platform engineering**: `eco scripts inject` adiciona scripts no `package.json`, `eco ci generate` cria workflows GitHub Actions, `eco doctor --fix` autocorrige `.gitignore`/`obfuscator.config.cjs` ausentes.
+- **Hooks de pipeline** (`afterPackage`, `afterObfuscate`, `afterRelease`) para customização sem fork.
+- **DX**: `eco check`/`eco doctor` validam ambiente antes do CI, `eco completion` gera autocomplete bash/zsh/fish, Composite GitHub Action reutilizável em outros repos.
+
+Pense no eco como `vite`/`tsup` para a camada de **distribuição** de apps Bun, com ênfase em entregar binários assináveis em múltiplas plataformas.
+
 ## Instalação
 
 ```bash
@@ -22,7 +36,11 @@ eco package     # gera o bundle
 eco release     # pipeline completo: package → obfuscate → binários
 ```
 
-## Comandos
+## API
+
+A superfície pública do eco tem três camadas: **CLI** (comandos), **config** (`eco.config.js` validado por Zod) e **hooks** (callbacks de pipeline). Não há SDK programático — eco é consumido como binário e via arquivo de config.
+
+### CLI — comandos
 
 | Comando | Descrição |
 |---------|-----------|
@@ -39,9 +57,16 @@ eco release     # pipeline completo: package → obfuscate → binários
 | `eco release` | Pipeline completo: package → obfuscate → binários nativos |
 | `eco completion <shell>` | Emite script de autocomplete para `bash`, `zsh` ou `fish` |
 
+Agrupados por intenção:
+
+- **Scaffold / setup**: `new`, `init`, `scripts inject`, `ci generate`
+- **Diagnóstico**: `check`, `doctor`, `info`, `config show`
+- **Build pipeline**: `package`, `obfuscate`, `release`
+- **Shell**: `completion`
+
 Para detalhes de cada comando: `eco <comando> --help`.
 
-## Configuração
+### Config — `eco.config.js`
 
 Crie um `eco.config.js` (ou `.ts`, `.mjs`) na raiz do projeto:
 
@@ -57,7 +82,27 @@ export default {
 }
 ```
 
-Todos os campos têm defaults — comece com `export default {}` se quiser.
+Todos os campos têm defaults — comece com `export default {}` se quiser. Tipos exportados de `@dixavier27/eco`: `EcoConfig`, `Platform`, `Asset`, `EcoHook`.
+
+#### Referência completa de campos
+
+| Campo | Tipo | Default | Descrição |
+|-------|------|---------|-----------|
+| `entry` | `string` | `'src/main.ts'` | Entrypoint passado para `bun build` |
+| `outDir` | `string` | `'dist'` | Diretório do bundle e ofuscado |
+| `bundleName` | `string` | `'bundle.js'` | Nome do arquivo bundle |
+| `releaseName` | `string` | `'app'` | Prefixo dos binários em `release/` |
+| `obfuscatorConfig` | `string` | `'obfuscator.config.cjs'` | Config do `javascript-obfuscator` |
+| `platforms` | `Platform[]` | `['linux','win']` | Alvos para `release` (`linux`, `win`, `macos`, `macos-arm64`) |
+| `sourcemap` | `false \| 'inline' \| 'external'` | `false` | Sourcemap do bundle |
+| `assets` | `{from,to}[]` | `[]` | Cópia declarativa de arquivos pós-bundle |
+| `define` | `Record<string,string>` | `{}` | Repassado como `bun build --define` |
+| `embedVersion` | `boolean` | `true` | Injeta versão do `package.json` como `__VERSION__` |
+| `parallel` | `boolean` | `true` | Compila plataformas em paralelo no `release` |
+| `checksums` | `boolean` | `false` | Gera `release/checksums.txt` (SHA256) |
+| `afterPackage` | `EcoHook` | — | Hook após `package` |
+| `afterObfuscate` | `EcoHook` | — | Hook após `obfuscate` |
+| `afterRelease` | `EcoHook` | — | Hook após `release` |
 
 ### Build features
 
@@ -89,7 +134,11 @@ export default {
 }
 ```
 
-### Hooks de pipeline
+### Hooks — `EcoHook`
+
+```ts
+type EcoHook = (config: EcoConfig) => void | Promise<void>
+```
 
 ```js
 import { cp } from 'node:fs/promises'
@@ -105,9 +154,9 @@ export default {
 }
 ```
 
-Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
+Hooks disponíveis: `afterPackage` (após bundle), `afterObfuscate` (após ofuscação) e `afterRelease` (após gerar binários e checksums). Todos recebem o config resolvido com defaults aplicados.
 
-## Flags globais
+### CLI — flags globais
 
 | Flag | Descrição |
 |------|-----------|
@@ -119,7 +168,7 @@ Hooks: `afterPackage`, `afterObfuscate`, `afterRelease`.
 | `--quiet` | Silencia logs (apenas erros) |
 | `--dry-run` | Mostra o que faria sem executar |
 
-## Flags específicas
+### CLI — flags específicas
 
 | Comando | Flag | Descrição |
 |---------|------|-----------|
