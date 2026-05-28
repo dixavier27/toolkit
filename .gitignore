@@ -3,3 +3,4 @@ dist/
 release/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+.claude/
