@@ -1,8 +1,6 @@
 # eco
 
-CLI em Go para gerenciar ambientes de desenvolvimento de APIs REST em Go.
-
-> Reinício enxuto. O histórico anterior (TS/Bun, v2.x) está preservado na branch [`backup`](https://github.com/dixavier27/eco/tree/backup).
+CLI em Go para criar e gerenciar projetos de API REST em Go.
 
 ## Instalação
 
@@ -10,14 +8,63 @@ CLI em Go para gerenciar ambientes de desenvolvimento de APIs REST em Go.
 go install github.com/dixavier27/eco/cmd/eco@latest
 ```
 
-## Uso
+Requer Go 1.26 ou superior. Verifique com `eco doctor`.
+
+## Comandos
+
+| Comando | Descrição |
+|---|---|
+| `eco version` | Imprime a versão do binário. |
+| `eco doctor` | Verifica se a toolchain Go está instalada e na versão mínima. |
+| `eco new <nome>` | Cria um novo projeto de API REST em `./<nome>`. |
+
+Cada comando aceita `--help`.
+
+## Criando um projeto
 
 ```bash
-eco version          # imprime a versão
-eco doctor           # verifica toolchain Go
-eco new meu-app      # cria nova API REST em ./meu-app
+eco new minha-api --module github.com/voce/minha-api
+cd minha-api
+go run ./cmd/api
+# em outro terminal:
+curl http://localhost:8080/healthz
 ```
 
-## Status
+Estrutura gerada:
 
-MVP em construção. Comandos planejados (`build`, `run`, `lint`, `test`, `release`, `ci`) serão reintroduzidos gradualmente — ver plano de desenvolvimento.
+```
+minha-api/
+├── cmd/api/main.go          # entrypoint
+├── internal/
+│   ├── http/                # servidor e rotas
+│   └── config/              # configuração via env vars
+├── api/openapi.yaml         # contrato OpenAPI 3 (stub)
+├── configs/config.yaml      # configuração local (stub)
+├── go.mod
+├── Makefile                 # alvos run / build / test / tidy
+└── README.md
+```
+
+Segue as convenções idiomáticas do ecossistema Go (`cmd/` para binários, `internal/` para lógica privada).
+
+### Flags de `eco new`
+
+- `--module <path>` — go module path (default: nome da pasta).
+- `--force` — sobrescreve diretório não vazio.
+
+## Desenvolvimento
+
+```bash
+git clone https://github.com/dixavier27/eco
+cd eco
+go build ./cmd/eco
+go test ./...
+```
+
+## Licença
+
+MIT. Veja [LICENSE](LICENSE).
+
+---
+
+<sub>O código pré-rewrite (TS/Bun, v2.x) está preservado na branch [`backup`](https://github.com/dixavier27/eco/tree/backup).</sub>
