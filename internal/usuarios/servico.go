@@ -3,18 +3,18 @@ package usuarios
 import (
 	"context"
 
-	"github.com/dixavier27/eco/pkg/inmemdb"
+	"github.com/dixavier27/eco/pkg/repo"
 )
 
 // Servico orquestra validação, hashing e persistência de usuários. Depende da
-// interface inmemdb.Repositorio (não da impl) e de um Hasher.
+// interface repo.Repositorio (não da impl) e de um Hasher.
 type Servico struct {
-	repo   inmemdb.Repositorio[Usuario]
+	repo   repo.Repositorio[Usuario]
 	hasher Hasher
 }
 
 // NovoServico cria um serviço sobre o repositório e hasher fornecidos.
-func NovoServico(repo inmemdb.Repositorio[Usuario], h Hasher) *Servico {
+func NovoServico(repo repo.Repositorio[Usuario], h Hasher) *Servico {
 	return &Servico{repo: repo, hasher: h}
 }
 

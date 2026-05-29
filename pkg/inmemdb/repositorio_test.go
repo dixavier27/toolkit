@@ -5,6 +5,8 @@ import (
 	"errors"
 	"sync"
 	"testing"
+
+	"github.com/dixavier27/eco/pkg/repo"
 )
 
 type item struct {
@@ -52,7 +54,7 @@ func TestCRUD(t *testing.T) {
 	if err := r.Deletar(ctx, criado.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Buscar(ctx, criado.ID); !errors.Is(err, ErrNaoEncontrado) {
+	if _, err := r.Buscar(ctx, criado.ID); !errors.Is(err, repo.ErrNaoEncontrado) {
 		t.Errorf("após deletar, erro = %v, quer ErrNaoEncontrado", err)
 	}
 }
@@ -62,7 +64,7 @@ func TestErros(t *testing.T) {
 
 	t.Run("sem id e sem definirID", func(t *testing.T) {
 		r := NovaMemoria(func(i item) string { return i.ID })
-		if _, err := r.Criar(ctx, item{}); !errors.Is(err, ErrNaoEncontrado) {
+		if _, err := r.Criar(ctx, item{}); !errors.Is(err, repo.ErrNaoEncontrado) {
 			t.Errorf("erro = %v, quer ErrNaoEncontrado", err)
 		}
 	})
@@ -72,14 +74,14 @@ func TestErros(t *testing.T) {
 		if _, err := r.Criar(ctx, item{ID: "x"}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := r.Criar(ctx, item{ID: "x"}); !errors.Is(err, ErrJaExiste) {
+		if _, err := r.Criar(ctx, item{ID: "x"}); !errors.Is(err, repo.ErrJaExiste) {
 			t.Errorf("erro = %v, quer ErrJaExiste", err)
 		}
 	})
 
 	t.Run("atualizar inexistente", func(t *testing.T) {
 		r := novoRepo()
-		if _, err := r.Atualizar(ctx, "nada", item{ID: "nada"}); !errors.Is(err, ErrNaoEncontrado) {
+		if _, err := r.Atualizar(ctx, "nada", item{ID: "nada"}); !errors.Is(err, repo.ErrNaoEncontrado) {
 			t.Errorf("erro = %v, quer ErrNaoEncontrado", err)
 		}
 	})
