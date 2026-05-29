@@ -16,13 +16,16 @@ var ErrCredenciais = errors.New("credenciais inválidas")
 // Servico orquestra validação, hashing e persistência de usuários. Depende da
 // interface repo.Repositorio (não da impl) e de um Hasher.
 type Servico struct {
-	repo   repo.Repositorio[Usuario]
-	hasher Hasher
+	repo      repo.Repositorio[Usuario]
+	hasher    Hasher
+	hashDummy string // hash pré-computado para equalizar timing no Autenticar
 }
 
 // NovoServico cria um serviço sobre o repositório e hasher fornecidos.
+// Gera imediatamente um hashDummy para uso em Autenticar.
 func NovoServico(repo repo.Repositorio[Usuario], h Hasher) *Servico {
-	return &Servico{repo: repo, hasher: h}
+	dummy, _ := h.Gerar("eco-dummy-timing")
+	return &Servico{repo: repo, hasher: h, hashDummy: dummy}
 }
 
 // Criar valida a entrada, hasheia a senha e persiste o usuário.
@@ -99,6 +102,9 @@ func (s *Servico) Autenticar(ctx context.Context, email, senha string) (Usuario,
 			return Usuario{}, ErrCredenciais
 		}
 	}
+	// Paga o custo do hash mesmo com email inexistente para não vazar via
+	// timing se um endereço está cadastrado ou não.
+	s.hasher.Conferir(s.hashDummy, senha)
 	return Usuario{}, ErrCredenciais
 }
 

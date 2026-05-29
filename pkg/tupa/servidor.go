@@ -14,10 +14,13 @@ import (
 
 // Servidor envolve um http.ServeMux e a configuração de um http.Server.
 type Servidor struct {
-	mux         *http.ServeMux
-	addr        string
-	middlewares []Middleware
-	timeoutPar  time.Duration // tempo máximo para o shutdown gracioso
+	mux            *http.ServeMux
+	addr           string
+	middlewares    []Middleware
+	timeoutPar     time.Duration // tempo máximo para o shutdown gracioso
+	timeoutLeitura time.Duration // ReadHeaderTimeout + ReadTimeout
+	timeoutEscrita time.Duration // WriteTimeout
+	timeoutIdle    time.Duration // IdleTimeout (keep-alive)
 }
 
 // Opcao configura um Servidor na criação (Functional Options).
@@ -29,12 +32,25 @@ func ComTimeoutDeParada(d time.Duration) Opcao {
 	return func(s *Servidor) { s.timeoutPar = d }
 }
 
+// ComTimeouts sobrescreve os timeouts de leitura, escrita e idle do http.Server.
+// Defaults: leitura 5s, escrita 10s, idle 60s.
+func ComTimeouts(leitura, escrita, idle time.Duration) Opcao {
+	return func(s *Servidor) {
+		s.timeoutLeitura = leitura
+		s.timeoutEscrita = escrita
+		s.timeoutIdle = idle
+	}
+}
+
 // Novo cria um Servidor que escutará em addr (ex.: ":8080").
 func Novo(addr string, opts ...Opcao) *Servidor {
 	s := &Servidor{
-		mux:        http.NewServeMux(),
-		addr:       addr,
-		timeoutPar: 10 * time.Second,
+		mux:            http.NewServeMux(),
+		addr:           addr,
+		timeoutPar:     10 * time.Second,
+		timeoutLeitura: 5 * time.Second,
+		timeoutEscrita: 10 * time.Second,
+		timeoutIdle:    60 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -75,8 +91,12 @@ func (s *Servidor) Handler() http.Handler {
 // limpa; caso contrário, o erro do servidor.
 func (s *Servidor) Iniciar(ctx context.Context) error {
 	srv := &http.Server{
-		Addr:    s.addr,
-		Handler: s.Handler(),
+		Addr:              s.addr,
+		Handler:           s.Handler(),
+		ReadHeaderTimeout: s.timeoutLeitura,
+		ReadTimeout:       s.timeoutLeitura,
+		WriteTimeout:      s.timeoutEscrita,
+		IdleTimeout:       s.timeoutIdle,
 	}
 
 	errc := make(chan error, 1)

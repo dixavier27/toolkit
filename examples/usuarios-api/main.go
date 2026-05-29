@@ -14,10 +14,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/dixavier27/eco/internal/posts"
@@ -31,6 +33,8 @@ import (
 )
 
 func main() {
+	carregarEnv(".env")
+
 	ctx, parar := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer parar()
 
@@ -93,6 +97,33 @@ func abrirRepos(ctx context.Context) (repo.Repositorio[usuarios.Usuario], repo.R
 		ru := inmemdb.NovaMemoria(idUsuario, inmemdb.ComDefinirID(defUsuario), inmemdb.ComGerarID[usuarios.Usuario](gerar))
 		rp := inmemdb.NovaMemoria(idPost, inmemdb.ComDefinirID(defPost), inmemdb.ComGerarID[posts.Post](gerar))
 		return ru, rp, func() {}
+	}
+}
+
+// carregarEnv lê um arquivo no formato KEY=VALUE e popula os.Environ com as
+// variáveis ainda não definidas (env explícita do shell tem precedência).
+// Ignora linhas em branco e comentários (#). Silencioso se o arquivo não existe.
+func carregarEnv(arquivo string) {
+	f, err := os.Open(arquivo)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		linha := strings.TrimSpace(sc.Text())
+		if linha == "" || strings.HasPrefix(linha, "#") {
+			continue
+		}
+		chave, valor, ok := strings.Cut(linha, "=")
+		if !ok {
+			continue
+		}
+		chave = strings.TrimSpace(chave)
+		valor = strings.TrimSpace(valor)
+		if os.Getenv(chave) == "" {
+			os.Setenv(chave, valor)
+		}
 	}
 }
 
