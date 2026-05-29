@@ -1,3 +1,14 @@
 # Configuração padrão da API {{.Name}}.
 # Substitua por env vars em produção (ex.: ADDR=:8080).
 addr: ":8080"
+
+# Backend de persistência: "memory" (padrão, zero deps) ou "mongo".
+# Em produção, prefira env vars: DB_DRIVER, MONGO_URI, MONGO_DB.
+db_driver: "memory"
+mongo_uri: "mongodb://localhost:27017"
+mongo_db: "{{.Name}}"
+
+# Autenticação (JWT). JWT_SECRET é obrigatório e NUNCA deve ser commitado —
+# defina por env var/secret. JWT_TTL aceita durações Go (ex.: 15m, 1h).
+jwt_secret: ""
+jwt_ttl: "15m"

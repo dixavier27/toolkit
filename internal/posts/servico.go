@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/dixavier27/eco/internal/usuarios"
-	"github.com/dixavier27/eco/pkg/inmemdb"
+	"github.com/dixavier27/eco/pkg/repo"
 )
 
 // ErrUsuarioInexistente é devolvido por Criar quando o usuário dono não existe.
@@ -18,14 +18,14 @@ type BuscadorDeUsuario interface {
 }
 
 // Servico orquestra validação e persistência de posts. Depende da interface
-// inmemdb.Repositorio (não da impl) e de um BuscadorDeUsuario para validar o dono.
+// repo.Repositorio (não da impl) e de um BuscadorDeUsuario para validar o dono.
 type Servico struct {
-	repo     inmemdb.Repositorio[Post]
+	repo     repo.Repositorio[Post]
 	usuarios BuscadorDeUsuario
 }
 
 // NovoServico cria um serviço sobre o repositório e o buscador de usuários.
-func NovoServico(repo inmemdb.Repositorio[Post], donos BuscadorDeUsuario) *Servico {
+func NovoServico(repo repo.Repositorio[Post], donos BuscadorDeUsuario) *Servico {
 	return &Servico{repo: repo, usuarios: donos}
 }
 
@@ -35,7 +35,7 @@ func (s *Servico) Criar(ctx context.Context, usuarioID string, e EntradaCriar) (
 		return Post{}, err
 	}
 	if _, err := s.usuarios.Buscar(ctx, usuarioID); err != nil {
-		if errors.Is(err, inmemdb.ErrNaoEncontrado) {
+		if errors.Is(err, repo.ErrNaoEncontrado) {
 			return Post{}, ErrUsuarioInexistente
 		}
 		return Post{}, err
