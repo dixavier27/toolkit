@@ -5,9 +5,14 @@ import (
 	"net/http"
 )
 
+// LimiteCorpo é o tamanho máximo aceito por LerJSON (1 MiB).
+const LimiteCorpo = 1 << 20
+
 // LerJSON decodifica o corpo da requisição em dst. Rejeita campos
-// desconhecidos para falhar cedo em payloads malformados.
+// desconhecidos para falhar cedo em payloads malformados. Limita a leitura
+// a LimiteCorpo bytes para prevenir DoS por payload gigante.
 func LerJSON(r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, LimiteCorpo)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	return dec.Decode(dst)
