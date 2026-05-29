@@ -23,6 +23,7 @@ type Colecao[T any] struct {
 	col      *mongo.Collection
 	idDe     func(T) string   // extrai o id de um item
 	defineID func(*T, string) // opcional: grava o id gerado de volta no item
+	gerar    func() string    // opcional: estratégia de geração de id
 }
 
 // Opcao configura uma *Colecao na criação.
@@ -32,6 +33,13 @@ type Opcao[T any] func(*Colecao[T])
 // Criar recebe um item sem id. Sem ele, Criar exige id não-vazio.
 func ComDefinirID[T any](definir func(*T, string)) Opcao[T] {
 	return func(c *Colecao[T]) { c.defineID = definir }
+}
+
+// ComGerarID define a estratégia de geração de id usada quando Criar recebe um
+// item sem id (ex.: id.UUIDv7{}.Novo). Sem ela, é gerado um ObjectID em hex.
+// Requer ComDefinirID para gravar o id no item.
+func ComGerarID[T any](gerar func() string) Opcao[T] {
+	return func(c *Colecao[T]) { c.gerar = gerar }
 }
 
 // NovaColecao cria um repositório sobre col. idDe extrai o id de cada item.
@@ -54,7 +62,11 @@ func (c *Colecao[T]) Criar(ctx context.Context, item T) (T, error) {
 			var zero T
 			return zero, repo.ErrNaoEncontrado
 		}
-		id = bson.NewObjectID().Hex()
+		if c.gerar != nil {
+			id = c.gerar()
+		} else {
+			id = bson.NewObjectID().Hex()
+		}
 		c.defineID(&item, id)
 	}
 	if _, err := c.col.InsertOne(ctx, item); err != nil {

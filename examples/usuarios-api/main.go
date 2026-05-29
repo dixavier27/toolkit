@@ -16,6 +16,7 @@ import (
 
 	"github.com/dixavier27/eco/internal/posts"
 	"github.com/dixavier27/eco/internal/usuarios"
+	"github.com/dixavier27/eco/pkg/id"
 	"github.com/dixavier27/eco/pkg/inmemdb"
 	"github.com/dixavier27/eco/pkg/mongodb"
 	"github.com/dixavier27/eco/pkg/repo"
@@ -51,6 +52,9 @@ func abrirRepos(ctx context.Context) (repo.Repositorio[usuarios.Usuario], repo.R
 	idPost := func(p posts.Post) string { return p.ID }
 	defPost := func(p *posts.Post, id string) { p.ID = id }
 
+	// Estratégia de identidade única para todos os backends: UUIDv7.
+	gerar := id.UUIDv7{}.Novo
+
 	switch os.Getenv("DB_DRIVER") {
 	case "mongo":
 		uri := os.Getenv("MONGO_URI")
@@ -66,13 +70,13 @@ func abrirRepos(ctx context.Context) (repo.Repositorio[usuarios.Usuario], repo.R
 			log.Fatalf("conectar ao mongo: %v", err)
 		}
 		log.Printf("backend: mongo (%s/%s)", uri, nomeDB)
-		ru := mongodb.NovaColecao(db.Collection("usuarios"), idUsuario, mongodb.ComDefinirID(defUsuario))
-		rp := mongodb.NovaColecao(db.Collection("posts"), idPost, mongodb.ComDefinirID(defPost))
+		ru := mongodb.NovaColecao(db.Collection("usuarios"), idUsuario, mongodb.ComDefinirID(defUsuario), mongodb.ComGerarID[usuarios.Usuario](gerar))
+		rp := mongodb.NovaColecao(db.Collection("posts"), idPost, mongodb.ComDefinirID(defPost), mongodb.ComGerarID[posts.Post](gerar))
 		return ru, rp, func() { _ = desconectar(context.Background()) }
 	default:
 		log.Println("backend: memory")
-		ru := inmemdb.NovaMemoria(idUsuario, inmemdb.ComDefinirID(defUsuario))
-		rp := inmemdb.NovaMemoria(idPost, inmemdb.ComDefinirID(defPost))
+		ru := inmemdb.NovaMemoria(idUsuario, inmemdb.ComDefinirID(defUsuario), inmemdb.ComGerarID[usuarios.Usuario](gerar))
+		rp := inmemdb.NovaMemoria(idPost, inmemdb.ComDefinirID(defPost), inmemdb.ComGerarID[posts.Post](gerar))
 		return ru, rp, func() {}
 	}
 }
