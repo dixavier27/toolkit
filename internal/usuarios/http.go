@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/dixavier27/eco/pkg/inmemdb"
+	"github.com/dixavier27/eco/pkg/repo"
 	"github.com/dixavier27/eco/pkg/tupa"
 )
 
@@ -74,9 +74,9 @@ func Registrar(s *tupa.Servidor, svc *Servico) {
 // responderErro mapeia erros de domínio para status HTTP.
 func responderErro(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, inmemdb.ErrNaoEncontrado):
+	case errors.Is(err, repo.ErrNaoEncontrado):
 		tupa.EscreverErro(w, http.StatusNotFound, "usuário não encontrado")
-	case errors.Is(err, inmemdb.ErrJaExiste):
+	case errors.Is(err, repo.ErrJaExiste):
 		tupa.EscreverErro(w, http.StatusConflict, "usuário já existe")
 	case errors.Is(err, ErrValidacao):
 		tupa.EscreverErro(w, http.StatusBadRequest, err.Error())

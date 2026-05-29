@@ -5,6 +5,12 @@ import "os"
 // Config agrupa as opções de runtime da API.
 type Config struct {
 	Addr string
+
+	// DBDriver seleciona o backend de persistência: "memory" (padrão) ou "mongo".
+	DBDriver string
+	// MongoURI e MongoDB só são usados quando DBDriver == "mongo".
+	MongoURI string
+	MongoDB  string
 }
 
 // Load lê variáveis de ambiente e devolve a configuração efetiva.
@@ -13,5 +19,18 @@ func Load() Config {
 	if addr == "" {
 		addr = ":8080"
 	}
-	return Config{Addr: addr}
+	driver := os.Getenv("DB_DRIVER")
+	if driver == "" {
+		driver = "memory"
+	}
+	mongoDB := os.Getenv("MONGO_DB")
+	if mongoDB == "" {
+		mongoDB = "{{.Name}}"
+	}
+	return Config{
+		Addr:     addr,
+		DBDriver: driver,
+		MongoURI: os.Getenv("MONGO_URI"),
+		MongoDB:  mongoDB,
+	}
 }
