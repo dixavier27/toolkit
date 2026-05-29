@@ -49,9 +49,9 @@ func main() {
 		seguranca.CORS(),
 		seguranca.LimitarTaxa(50, 100), // 50 req/s por IP, rajada de 100
 	)
-	usuarios.Registrar(srv, svcUsuarios)
+	usuarios.Registrar(srv, svcUsuarios, emissor)
 	usuarios.RegistrarAuth(srv, svcUsuarios, emissor)
-	posts.Registrar(srv, svcPosts)
+	posts.Registrar(srv, svcPosts, emissor)
 
 	log.Println("escutando em :8080 (Ctrl+C para parar)")
 	if err := srv.Iniciar(ctx); err != nil {

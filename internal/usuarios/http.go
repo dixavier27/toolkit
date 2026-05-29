@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"github.com/dixavier27/eco/pkg/repo"
+	"github.com/dixavier27/eco/pkg/seguranca"
 	"github.com/dixavier27/eco/pkg/tupa"
 )
 
-// Registrar registra as rotas REST de usuários no servidor tupa.
+// Registrar registra as rotas REST de usuários no servidor tupa. Criação
+// (registro) e leitura são públicas; atualização e remoção exigem token válido
+// e que o autenticado seja o próprio usuário (ou admin).
 //
-//	POST   /usuarios       cria
-//	GET    /usuarios       lista
-//	GET    /usuarios/{id}  busca
-//	PUT    /usuarios/{id}  atualiza
-//	DELETE /usuarios/{id}  remove
-func Registrar(s *tupa.Servidor, svc *Servico) {
+//	POST   /usuarios       cria (público — registro)
+//	GET    /usuarios       lista (público)
+//	GET    /usuarios/{id}  busca (público)
+//	PUT    /usuarios/{id}  atualiza (self/admin)
+//	DELETE /usuarios/{id}  remove (self/admin)
+func Registrar(s *tupa.Servidor, svc *Servico, emissor *seguranca.Emissor) {
 	s.Rota("POST", "/usuarios", func(w http.ResponseWriter, r *http.Request) {
 		var e EntradaCriar
 		if err := tupa.LerJSON(r, &e); err != nil {
@@ -48,7 +51,11 @@ func Registrar(s *tupa.Servidor, svc *Servico) {
 		_ = tupa.EscreverJSON(w, http.StatusOK, u)
 	})
 
-	s.Rota("PUT", "/usuarios/{id}", func(w http.ResponseWriter, r *http.Request) {
+	s.Rota("PUT", "/usuarios/{id}", seguranca.Autenticar(emissor, func(w http.ResponseWriter, r *http.Request) {
+		if !seguranca.EhDono(r.Context(), r.PathValue("id")) {
+			tupa.EscreverErro(w, http.StatusForbidden, "acesso negado")
+			return
+		}
 		var e EntradaCriar
 		if err := tupa.LerJSON(r, &e); err != nil {
 			tupa.EscreverErro(w, http.StatusBadRequest, "JSON inválido")
@@ -60,15 +67,19 @@ func Registrar(s *tupa.Servidor, svc *Servico) {
 			return
 		}
 		_ = tupa.EscreverJSON(w, http.StatusOK, u)
-	})
+	}))
 
-	s.Rota("DELETE", "/usuarios/{id}", func(w http.ResponseWriter, r *http.Request) {
+	s.Rota("DELETE", "/usuarios/{id}", seguranca.Autenticar(emissor, func(w http.ResponseWriter, r *http.Request) {
+		if !seguranca.EhDono(r.Context(), r.PathValue("id")) {
+			tupa.EscreverErro(w, http.StatusForbidden, "acesso negado")
+			return
+		}
 		if err := svc.Deletar(r.Context(), r.PathValue("id")); err != nil {
 			responderErro(w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
-	})
+	}))
 }
 
 // EmissorToken é o mínimo que o login precisa: emitir um token para o usuário
