@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 // Config agrupa as opções de runtime da API.
 type Config struct {
@@ -11,6 +14,11 @@ type Config struct {
 	// MongoURI e MongoDB só são usados quando DBDriver == "mongo".
 	MongoURI string
 	MongoDB  string
+
+	// JWTSecret assina os tokens de autenticação. Obrigatório; nunca hard-code.
+	JWTSecret string
+	// JWTTTL é a validade de cada token emitido (default 15m).
+	JWTTTL time.Duration
 }
 
 // Load lê variáveis de ambiente e devolve a configuração efetiva.
@@ -27,10 +35,18 @@ func Load() Config {
 	if mongoDB == "" {
 		mongoDB = "{{.Name}}"
 	}
+	ttl := 15 * time.Minute
+	if v := os.Getenv("JWT_TTL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			ttl = d
+		}
+	}
 	return Config{
-		Addr:     addr,
-		DBDriver: driver,
-		MongoURI: os.Getenv("MONGO_URI"),
-		MongoDB:  mongoDB,
+		Addr:      addr,
+		DBDriver:  driver,
+		MongoURI:  os.Getenv("MONGO_URI"),
+		MongoDB:   mongoDB,
+		JWTSecret: os.Getenv("JWT_SECRET"),
+		JWTTTL:    ttl,
 	}
 }

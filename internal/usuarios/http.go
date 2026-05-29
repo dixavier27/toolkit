@@ -71,9 +71,48 @@ func Registrar(s *tupa.Servidor, svc *Servico) {
 	})
 }
 
+// EmissorToken é o mínimo que o login precisa: emitir um token para o usuário
+// autenticado. Satisfeito por *seguranca.Emissor — assim o domínio não importa
+// o pacote seguranca nem conhece JWT.
+type EmissorToken interface {
+	Emitir(sub, papel string) (string, error)
+}
+
+// EntradaLogin é o payload de autenticação.
+type EntradaLogin struct {
+	Email string `json:"email"`
+	Senha string `json:"senha"`
+}
+
+// RegistrarAuth registra a rota de autenticação:
+//
+//	POST /login  valida email+senha e devolve {"token": "..."}
+func RegistrarAuth(s *tupa.Servidor, svc *Servico, emissor EmissorToken) {
+	s.Rota("POST", "/login", func(w http.ResponseWriter, r *http.Request) {
+		var e EntradaLogin
+		if err := tupa.LerJSON(r, &e); err != nil {
+			tupa.EscreverErro(w, http.StatusBadRequest, "JSON inválido")
+			return
+		}
+		u, err := svc.Autenticar(r.Context(), e.Email, e.Senha)
+		if err != nil {
+			responderErro(w, err)
+			return
+		}
+		token, err := emissor.Emitir(u.ID, u.Papel)
+		if err != nil {
+			tupa.EscreverErro(w, http.StatusInternalServerError, "erro interno")
+			return
+		}
+		_ = tupa.EscreverJSON(w, http.StatusOK, map[string]string{"token": token})
+	})
+}
+
 // responderErro mapeia erros de domínio para status HTTP.
 func responderErro(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, ErrCredenciais):
+		tupa.EscreverErro(w, http.StatusUnauthorized, "credenciais inválidas")
 	case errors.Is(err, repo.ErrNaoEncontrado):
 		tupa.EscreverErro(w, http.StatusNotFound, "usuário não encontrado")
 	case errors.Is(err, repo.ErrJaExiste):

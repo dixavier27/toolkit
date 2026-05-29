@@ -11,6 +11,7 @@ type Usuario struct {
 	Sobrenome          string `json:"sobrenome" bson:"sobrenome"`
 	Email              string `json:"email" bson:"email"`
 	Whatsapp           string `json:"whatsapp" bson:"whatsapp"`
+	Papel              string `json:"papel" bson:"papel"`
 	SenhaCriptografada string `json:"-" bson:"senha"`
 }
 

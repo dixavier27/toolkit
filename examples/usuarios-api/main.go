@@ -6,6 +6,11 @@
 //
 //	DB_DRIVER=memory                 # padrão: in-memory, zero dependências
 //	DB_DRIVER=mongo MONGO_URI=...    # MongoDB (MONGO_DB opcional, default "eco")
+//
+// Autenticação (login + JWT) exige um segredo:
+//
+//	JWT_SECRET=...                   # obrigatório; nunca hard-code/commit
+//	JWT_TTL=15m                      # validade do token (default 15m)
 package main
 
 import (
@@ -13,6 +18,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/dixavier27/eco/internal/posts"
 	"github.com/dixavier27/eco/internal/usuarios"
@@ -20,6 +26,7 @@ import (
 	"github.com/dixavier27/eco/pkg/inmemdb"
 	"github.com/dixavier27/eco/pkg/mongodb"
 	"github.com/dixavier27/eco/pkg/repo"
+	"github.com/dixavier27/eco/pkg/seguranca"
 	"github.com/dixavier27/eco/pkg/tupa"
 )
 
@@ -33,9 +40,17 @@ func main() {
 	svcUsuarios := usuarios.NovoServico(repoUsuarios, usuarios.BcryptHasher{})
 	svcPosts := posts.NovoServico(repoPosts, svcUsuarios)
 
+	emissor := abrirEmissor()
+
 	srv := tupa.Novo(":8080")
-	srv.Usar(tupa.LogRequisicoes(log.Default()))
+	srv.Usar(
+		tupa.LogRequisicoes(log.Default()),
+		seguranca.CabecalhosSeguranca(),
+		seguranca.CORS(),
+		seguranca.LimitarTaxa(50, 100), // 50 req/s por IP, rajada de 100
+	)
 	usuarios.Registrar(srv, svcUsuarios)
+	usuarios.RegistrarAuth(srv, svcUsuarios, emissor)
 	posts.Registrar(srv, svcPosts)
 
 	log.Println("escutando em :8080 (Ctrl+C para parar)")
@@ -79,4 +94,22 @@ func abrirRepos(ctx context.Context) (repo.Repositorio[usuarios.Usuario], repo.R
 		rp := inmemdb.NovaMemoria(idPost, inmemdb.ComDefinirID(defPost), inmemdb.ComGerarID[posts.Post](gerar))
 		return ru, rp, func() {}
 	}
+}
+
+// abrirEmissor monta o emissor de tokens JWT a partir das env vars JWT_SECRET
+// (obrigatória) e JWT_TTL (default 15m).
+func abrirEmissor() *seguranca.Emissor {
+	segredo := os.Getenv("JWT_SECRET")
+	if segredo == "" {
+		log.Fatal("JWT_SECRET é obrigatório (defina via env var; nunca hard-code)")
+	}
+	ttl := 15 * time.Minute
+	if v := os.Getenv("JWT_TTL"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			log.Fatalf("JWT_TTL inválido (%q): %v", v, err)
+		}
+		ttl = d
+	}
+	return seguranca.NovoEmissor(segredo, ttl)
 }

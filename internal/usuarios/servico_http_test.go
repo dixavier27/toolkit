@@ -80,6 +80,59 @@ func TestHTTPCRUD(t *testing.T) {
 	}
 }
 
+// emissorFake satisfaz EmissorToken sem JWT real, isolando o teste do login.
+type emissorFake struct{ ultimoSub, ultimoPapel string }
+
+func (e *emissorFake) Emitir(sub, papel string) (string, error) {
+	e.ultimoSub, e.ultimoPapel = sub, papel
+	return "tok-" + sub, nil
+}
+
+func TestHTTPLogin(t *testing.T) {
+	srv, svc := montar()
+	em := &emissorFake{}
+	RegistrarAuth(srv, svc, em)
+	h := srv.Handler()
+
+	// cria o usuário que vai logar
+	u, err := svc.Criar(context.Background(), entradaValida())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// login correto → 200 + token
+	rec := httptest.NewRecorder()
+	body := `{"email":"ana@ex.com","senha":"segredo123"}`
+	h.ServeHTTP(rec, httptest.NewRequest("POST", "/login", strings.NewReader(body)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login status = %d, quer 200 (corpo: %s)", rec.Code, rec.Body)
+	}
+	var resp map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp["token"] != "tok-"+u.ID {
+		t.Errorf("token = %q, quer tok-%s", resp["token"], u.ID)
+	}
+	if em.ultimoPapel != PapelPadrao {
+		t.Errorf("papel emitido = %q, quer %q", em.ultimoPapel, PapelPadrao)
+	}
+
+	// senha errada → 401
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("POST", "/login", strings.NewReader(`{"email":"ana@ex.com","senha":"errada00"}`)))
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("login senha errada = %d, quer 401", rec.Code)
+	}
+
+	// email inexistente → 401
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("POST", "/login", strings.NewReader(`{"email":"nao@existe.com","senha":"segredo123"}`)))
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("login email inexistente = %d, quer 401", rec.Code)
+	}
+}
+
 func TestHTTPErros(t *testing.T) {
 	srv, _ := montar()
 	h := srv.Handler()
